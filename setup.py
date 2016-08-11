@@ -22,11 +22,11 @@ setup(
     version='0.1',
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
-    packages=['cloudify_docker']
+    packages=['cloudify_docker'],
     description='Cloudify Docker dev tools',
     license='Apache License, Version 2.0',
     zip_safe=False,
-    install_requires=['argh', 'sh'],
+    install_requires=['argh', 'sh', 'path.py', 'pyyaml'],
     include_package_data=True,
     entry_points={
         'console_scripts': [

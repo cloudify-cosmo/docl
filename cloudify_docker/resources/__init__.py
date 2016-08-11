@@ -12,31 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+############
+
+import pkgutil
+
+from path import path
 
 
-import sys
-from StringIO import StringIO
-
-import argh
-import argh.utils
-
-from cloudify_docker import commands
-from cloudify_docker import logs
+def get(resource):
+    return pkgutil.get_data(__package__, resource)
 
 
-def main():
-    logs.setup_logging()
-    parser = argh.ArghParser()
-    subparsers_action = argh.utils.get_subparsers(parser, create=True)
-    subparsers_action.metavar = ''
-    parser.add_commands(commands.app.commands)
-    errors = StringIO()
-    parser.dispatch(errors_file=errors)
-    errors_value = errors.getvalue()
-    if errors_value:
-        errors_value = errors_value.replace('CommandError', 'error').strip()
-        sys.exit(errors_value)
-
-
-if __name__ == '__main__':
-    main()
+DIR = path(__file__).dirname()
