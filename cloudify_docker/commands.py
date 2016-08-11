@@ -13,20 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import sys
+import sched
 import tempfile
+import time
+import logging
+from threading import Lock
 
 import argh
 import sh
 import yaml
+from watchdog import events
+from watchdog.observers import Observer
+from path import path
 
 from cloudify_docker import resources
 
 
 EXPOSE = [22, 80, 443, 5671]
 PUBLISH = []
-
 
 PACKAGE_DIR = {
     'amqp_influxdb': 'cloudify-amqp-influxdb',
@@ -41,6 +46,21 @@ PACKAGE_DIR = {
     'windows_plugin_installer': 'cloudify-agent',
     'worker_installer': 'cloudify-agent',
     'cloudify_system_workflows': 'cloudify-manager/workflows'
+}
+
+PACKAGE_DIR_SERVICES = {
+    'amqp_influxdb': {'amqpinflux'},
+    'cloudify': {'restservice', 'mgmtworker'},
+    'cloudify_agent': {'restservice', 'mgmtworker'},
+    'cloudify_rest_client': {'restservice', 'mgmtworker'},
+    'dsl_parser': {'restservice', 'mgmtworker'},
+    'manager_rest': {'restservice'},
+    'plugin_installer': {'restservice', 'mgmtworker'},
+    'script_runner': {'restservice', 'mgmtworker'},
+    'windows_agent_installer': {'restservice', 'mgmtworker'},
+    'windows_plugin_installer': {'restservice', 'mgmtworker'},
+    'worker_installer': {'restservice', 'mgmtworker'},
+    'cloudify_system_workflows': {'mgmtworker'}
 }
 
 ENV_PACKAGES = {
@@ -74,15 +94,16 @@ ENV_PACKAGES = {
 }
 
 
-app = argh.EntryPoint('cloudify-docker')
-command = app
-
-
 def bake(cmd):
     return cmd.bake(_err_to_out=True,
                     _out=lambda l: sys.stdout.write(l),
                     _tee=True)
 
+
+logger = logging.getLogger(__name__)
+
+app = argh.EntryPoint('cloudify-docker')
+command = app
 
 docker = bake(sh.docker)
 ssh_keygen = bake(sh.Command('ssh-keygen'))
@@ -94,16 +115,21 @@ def bootstrap(simple_blueprint_manager_path,
               ssh_key='~/.ssh/.id_rsa',
               docker_tag='cloudify/centos-manager:7',
               inputs=None):
+    simple_blueprint_manager_path = path(
+        simple_blueprint_manager_path).expanduser()
+    ssh_key = path(ssh_key).expanduser()
+    ssh_pub_key = path('{}.pub'.format(ssh_key))
+
     inputs = inputs or []
     required_files = {
         simple_blueprint_manager_path: 'You must specify a path '
                                        'to a manager blueprint',
         ssh_key: 'You need to create a key (see man ssh-keygen) first',
-        '{}.pub'.format(ssh_key): 'The ssh public key is expected to exist'
-                                  ' at {}'.format('{}.pub'.format(ssh_key))
+        ssh_pub_key: 'The ssh public key is expected to exist at {}'
+                     .format(ssh_pub_key)
     }
     for required_file, message in required_files.items():
-        if not os.path.isfile(required_file):
+        if not required_file.isfile():
             raise argh.CommandError(message)
     container_id, container_ip = _create_base_container(docker_tag=docker_tag)
     _ssh_setup(container_id=container_id,
@@ -128,7 +154,7 @@ def run(docker_tag='cloudify/centos-manager-installed:7',
         source_root=None):
     volumes = None
     if source_root:
-        source_root = os.path.expanduser(source_root)
+        source_root = path(source_root).expanduser().abspath()
         volumes = _build_volumes(source_root)
     _run_container(docker_tag=docker_tag, volume=volumes)
 
@@ -136,8 +162,59 @@ def run(docker_tag='cloudify/centos-manager-installed:7',
 @command
 def restart_services(container_id):
     for service in ['amqpinflux', 'mgmtworker', 'restservice']:
-        docker('exec', container_id, 'systemctl', 'restart',
-               'cloudify-{}'.format(service))
+        _restart_service(container_id, service)
+
+
+def _restart_service(container_id, service):
+    service_name = 'cloudify-{}'.format(service)
+    logger.info('Restarting {}'.format(service_name))
+    docker('exec', container_id, 'systemctl', 'restart', service_name)
+
+
+@command
+def watch(container_id, source_root):
+    source_root = path(source_root).expanduser()
+    services_to_restart_lock = Lock()
+
+    class Handler(events.FileSystemEventHandler):
+
+        def __init__(self, services, package, services_to_restart):
+            self.services = services
+            self.services_to_restart = services_to_restart
+            self.package = package
+
+        def on_modified(self, event):
+            if (event.is_directory and
+                    event.event_type == events.EVENT_TYPE_MODIFIED):
+                with services_to_restart_lock:
+                    self.services_to_restart.update(self.services)
+    services_to_restart = set()
+    observer = Observer()
+    for package, services in PACKAGE_DIR_SERVICES.items():
+        src = '{}/{}/{}'.format(source_root,
+                                PACKAGE_DIR[package],
+                                package)
+        observer.schedule(Handler(services, package, services_to_restart),
+                          path=src,
+                          recursive=True)
+    observer.start()
+
+    scheduler = sched.scheduler(time.time, time.sleep)
+
+    def restart_changed_services():
+        with services_to_restart_lock:
+            current_services_to_restart = services_to_restart.copy()
+            services_to_restart.clear()
+        while current_services_to_restart:
+            service = current_services_to_restart.pop()
+            _restart_service(container_id, service)
+        scheduler.enter(2, 1, restart_changed_services, ())
+    restart_changed_services()
+
+    try:
+        scheduler.run()
+    except KeyboardInterrupt:
+        pass
 
 
 def _build_volumes(source_root):
@@ -147,8 +224,8 @@ def _build_volumes(source_root):
             src = '{}/{}/{}'.format(source_root,
                                     PACKAGE_DIR[package],
                                     package)
-            dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(
-                env, package)
+            dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
+                                                                      package)
             volumes.append('{}:{}:ro'.format(src, dst))
     return volumes
 
@@ -167,7 +244,6 @@ def _create_base_container(docker_tag):
     container_id, container_ip = _run_container(docker_tag=docker_tag,
                                                 expose=EXPOSE,
                                                 publish=PUBLISH)
-    # DBus is used by the manager for cfy status
     docker('exec', container_id, 'systemctl', 'start', 'dbus')
     return container_id, container_ip
 
@@ -176,7 +252,6 @@ def _run_container(docker_tag, expose=None, publish=None, volume=None):
     expose = expose or []
     publish = publish or []
     volume = volume or []
-
     container_id = docker.run(*['--privileged', '--detach'] +
                                ['--hostname=cfy-manager'] +
                                ['--expose={}'.format(e) for e in expose] +
@@ -191,21 +266,14 @@ def _run_container(docker_tag, expose=None, publish=None, volume=None):
 
 
 def _ssh_setup(container_id, container_ip, ssh_key):
-    """
-    Inject the user's SSH key into root's authorized_keys
-    Also clears out references to the container's IP in the local known_hosts
-    """
-    # Remove old keys referring to the container's IP
     ssh_keygen('-R', container_ip)
-    # new container shouldn't have an authorized_keys file yet
     try:
         docker('exec', container_id, 'mkdir', '-m700', '/root/.ssh')
     except sh.ErrorReturnCode as e:
         if e.exit_code != 1:
             raise
-            # Hopefully that means it's already there
     docker.cp('{}.pub'.format(ssh_key),
-              '{id}:/root/.ssh/authorized_keys'.format(id=container_id))
+              '{}:/root/.ssh/authorized_keys'.format(container_id))
 
 
 def _cfy_bootstrap(simple_blueprint_manager_path,

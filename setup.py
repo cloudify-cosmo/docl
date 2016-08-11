@@ -26,7 +26,7 @@ setup(
     description='Cloudify Docker dev tools',
     license='Apache License, Version 2.0',
     zip_safe=False,
-    install_requires=['argh', 'sh', 'path.py', 'pyyaml'],
+    install_requires=['argh', 'sh', 'path.py', 'pyyaml', 'watchdog'],
     include_package_data=True,
     entry_points={
         'console_scripts': [
