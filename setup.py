@@ -22,7 +22,7 @@ setup(
     version='0.1',
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
-    packages=['cloudify_docker'],
+    packages=['docl'],
     description='Cloudify Docker dev tools',
     license='Apache License, Version 2.0',
     zip_safe=False,
