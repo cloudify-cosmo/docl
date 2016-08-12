@@ -15,7 +15,6 @@
 ############
 
 import argh
-
 import yaml
 from path import path
 

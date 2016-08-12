@@ -18,23 +18,25 @@ import sched
 import tempfile
 import time
 import logging
-from threading import Lock
+import threading
 
 import argh
 import sh
 import yaml
+import proxy_tools
 from watchdog import events
-from watchdog.observers import Observer
+from watchdog import observers
 from path import path
-from proxy_tools import Proxy
 
 from cloudify_docker import resources
 from cloudify_docker.configuration import configuration
 from cloudify_docker.work import work
 
 
-EXPOSE = [22, 80, 443, 5671]
-PUBLISH = []
+EXPOSE = (22, 80, 443, 5671)
+PUBLISH = ()
+
+SERVICES = ('amqpinflux', 'mgmtworker', 'restservice')
 
 PACKAGE_DIR = {
     'amqp_influxdb': 'cloudify-amqp-influxdb',
@@ -67,10 +69,10 @@ PACKAGE_DIR_SERVICES = {
 }
 
 ENV_PACKAGES = {
-    'amqpinflux': [
+    'amqpinflux': (
         'amqp_influxdb'
-    ],
-    'manager': [
+    ),
+    'manager': (
         'cloudify',
         'cloudify_agent',
         'cloudify_rest_client',
@@ -81,8 +83,8 @@ ENV_PACKAGES = {
         'windows_agent_installer',
         'windows_plugin_installer',
         'worker_installer',
-    ],
-    'mgmtworker': [
+    ),
+    'mgmtworker': (
         'cloudify',
         'cloudify_agent',
         'cloudify_system_workflows',
@@ -93,7 +95,7 @@ ENV_PACKAGES = {
         'windows_agent_installer',
         'windows_plugin_installer',
         'worker_installer',
-    ]
+    )
 }
 
 
@@ -112,7 +114,7 @@ logger = logging.getLogger(__name__)
 app = argh.EntryPoint('cloudify-docker')
 command = app
 
-docker = Proxy(docker_proxy)
+docker = proxy_tools.Proxy(docker_proxy)
 ssh_keygen = bake(sh.Command('ssh-keygen'))
 cfy = bake(sh.cfy)
 
@@ -138,9 +140,7 @@ def init(docker_host='fd://',
     for required_file, message in required_files.items():
         if not required_file.isfile():
             raise argh.CommandError(message)
-
-    ssh_public_key = ssh_keygen('-y', '-f', ssh_key_path).stdout.strip()
-
+    ssh_public_key = ssh_keygen('-y', '-f', ssh_key_path).strip()
     configuration.save(
         docker_host=docker_host,
         simple_manager_blueprint_path=simple_manager_blueprint_path.abspath(),
@@ -174,16 +174,14 @@ def save_image(container_id=None):
 @command
 def run(mount=False):
     docker_tag = configuration.installed_image_docker_tag
-    volumes = None
-    if mount:
-        volumes = _build_volumes()
+    volumes = _build_volumes() if mount else None
     _run_container(docker_tag=docker_tag, volume=volumes)
 
 
 @command
 def restart_services(container_id=None):
     container_id = container_id or work.last_container_id
-    for service in ['amqpinflux', 'mgmtworker', 'restservice']:
+    for service in SERVICES:
         _restart_service(container_id, service)
 
 
@@ -197,25 +195,22 @@ def _restart_service(container_id, service):
 def watch(container_id=None):
     container_id = container_id or work.last_container_id
     services_to_restart = set()
-    services_to_restart_lock = Lock()
+    services_to_restart_lock = threading.Lock()
 
     class Handler(events.FileSystemEventHandler):
-        def __init__(self, services, package):
+        def __init__(self, services):
             self.services = services
-            self.package = package
 
         def on_modified(self, ev):
             if ev.is_directory and ev.event_type == events.EVENT_TYPE_MODIFIED:
                 with services_to_restart_lock:
                     services_to_restart.update(self.services)
-    observer = Observer()
+    observer = observers.Observer()
     for package, services in PACKAGE_DIR_SERVICES.items():
         src = '{}/{}/{}'.format(configuration.source_root,
                                 PACKAGE_DIR[package],
                                 package)
-        observer.schedule(Handler(services, package),
-                          path=src,
-                          recursive=True)
+        observer.schedule(Handler(services), path=src, recursive=True)
     observer.start()
 
     scheduler = sched.scheduler(time.time, time.sleep)
@@ -224,8 +219,7 @@ def watch(container_id=None):
         with services_to_restart_lock:
             current_services_to_restart = services_to_restart.copy()
             services_to_restart.clear()
-        while current_services_to_restart:
-            service = current_services_to_restart.pop()
+        for service in current_services_to_restart:
             _restart_service(container_id, service)
         scheduler.enter(2, 1, restart_changed_services, ())
     restart_changed_services()
@@ -252,8 +246,8 @@ def _build_volumes():
 @command
 def clean():
     docker_tag = configuration.installed_image_docker_tag
-    containers = docker.ps('-aq', '--filter', 'ancestor={}'.format(docker_tag)
-                           ).strip().split('\n')
+    containers = docker.ps(
+        '-aq', '--filter', 'ancestor={}'.format(docker_tag)).split('\n')
     containers = [c.strip() for c in containers if c.strip()]
     if containers:
         docker.rm('-f', ' '.join(containers))

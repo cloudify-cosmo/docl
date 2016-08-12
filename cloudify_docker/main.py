@@ -15,7 +15,7 @@
 
 
 import sys
-from StringIO import StringIO
+import StringIO
 
 import argh
 import argh.utils
@@ -30,7 +30,7 @@ def main():
     subparsers_action = argh.utils.get_subparsers(parser, create=True)
     subparsers_action.metavar = ''
     parser.add_commands(commands.app.commands)
-    errors = StringIO()
+    errors = StringIO.StringIO()
     parser.dispatch(errors_file=errors)
     errors_value = errors.getvalue()
     if errors_value:

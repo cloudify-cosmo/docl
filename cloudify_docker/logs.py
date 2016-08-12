@@ -14,8 +14,8 @@
 # limitations under the License.
 ############
 
-import sys
 import logging
+import sys
 
 
 def setup_logging():
@@ -27,6 +27,5 @@ def setup_logging():
     handler.setLevel(logging.INFO)
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(handler)
-
     sh_logger = logging.getLogger('sh')
     sh_logger.setLevel(logging.WARNING)
