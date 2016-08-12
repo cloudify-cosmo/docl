@@ -18,7 +18,7 @@ from setuptools import setup
 
 
 setup(
-    name='cloudify-docker-dev-tools',
+    name='docl',
     version='0.1',
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
@@ -37,7 +37,7 @@ setup(
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'cfy-docker = cloudify_docker.main:main',
+            'docl = docl.main:main',
         ],
     }
 )

@@ -14,7 +14,7 @@
 # limitations under the License.
 ############
 
-from cloudify_docker.configuration import configuration
+from docl.configuration import configuration
 
 
 class Work(object):

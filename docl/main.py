@@ -20,8 +20,8 @@ import StringIO
 import argh
 import argh.utils
 
-from cloudify_docker import commands
-from cloudify_docker import logs
+from docl import commands
+from docl import logs
 
 
 def main():

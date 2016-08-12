@@ -18,7 +18,7 @@ import sys
 import proxy_tools
 import sh
 
-from cloudify_docker.configuration import configuration
+from docl.configuration import configuration
 
 
 def bake(cmd):

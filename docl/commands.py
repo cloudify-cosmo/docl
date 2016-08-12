@@ -25,14 +25,14 @@ from watchdog import events
 from watchdog import observers
 from path import path
 
-from cloudify_docker import constants
-from cloudify_docker import resources
-from cloudify_docker.configuration import configuration
-from cloudify_docker.work import work
-from cloudify_docker.subprocess import docker
-from cloudify_docker.subprocess import ssh_keygen
-from cloudify_docker.subprocess import cfy
-from cloudify_docker.logs import logger
+from docl import constants
+from docl import resources
+from docl.configuration import configuration
+from docl.work import work
+from docl.subprocess import docker
+from docl.subprocess import ssh_keygen
+from docl.subprocess import cfy
+from docl.logs import logger
 
 app = argh.EntryPoint('cloudify-docker')
 command = app
