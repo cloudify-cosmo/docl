@@ -13,110 +13,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import sched
 import tempfile
 import time
-import logging
 import threading
 
 import argh
 import sh
 import yaml
-import proxy_tools
 from watchdog import events
 from watchdog import observers
 from path import path
 
+from cloudify_docker import constants
 from cloudify_docker import resources
 from cloudify_docker.configuration import configuration
 from cloudify_docker.work import work
-
-
-EXPOSE = (22, 80, 443, 5671)
-PUBLISH = ()
-
-SERVICES = ('amqpinflux', 'mgmtworker', 'restservice')
-
-PACKAGE_DIR = {
-    'amqp_influxdb': 'cloudify-amqp-influxdb',
-    'cloudify': 'cloudify-plugins-common',
-    'cloudify_agent': 'cloudify-agent',
-    'cloudify_rest_client': 'cloudify-rest-client',
-    'dsl_parser': 'cloudify-dsl-parser',
-    'manager_rest': 'cloudify-manager/rest-service',
-    'plugin_installer': 'cloudify-agent',
-    'script_runner': 'cloudify-script-plugin',
-    'windows_agent_installer': 'cloudify-agent',
-    'windows_plugin_installer': 'cloudify-agent',
-    'worker_installer': 'cloudify-agent',
-    'cloudify_system_workflows': 'cloudify-manager/workflows'
-}
-
-PACKAGE_DIR_SERVICES = {
-    'amqp_influxdb': {'amqpinflux'},
-    'cloudify': {'restservice', 'mgmtworker'},
-    'cloudify_agent': {'restservice', 'mgmtworker'},
-    'cloudify_rest_client': {'restservice', 'mgmtworker'},
-    'dsl_parser': {'restservice', 'mgmtworker'},
-    'manager_rest': {'restservice'},
-    'plugin_installer': {'restservice', 'mgmtworker'},
-    'script_runner': {'restservice', 'mgmtworker'},
-    'windows_agent_installer': {'restservice', 'mgmtworker'},
-    'windows_plugin_installer': {'restservice', 'mgmtworker'},
-    'worker_installer': {'restservice', 'mgmtworker'},
-    'cloudify_system_workflows': {'mgmtworker'}
-}
-
-ENV_PACKAGES = {
-    'amqpinflux': (
-        'amqp_influxdb'
-    ),
-    'manager': (
-        'cloudify',
-        'cloudify_agent',
-        'cloudify_rest_client',
-        'dsl_parser',
-        'manager_rest',
-        'plugin_installer',
-        'script_runner',
-        'windows_agent_installer',
-        'windows_plugin_installer',
-        'worker_installer',
-    ),
-    'mgmtworker': (
-        'cloudify',
-        'cloudify_agent',
-        'cloudify_system_workflows',
-        'cloudify_rest_client',
-        'dsl_parser',
-        'plugin_installer',
-        'script_runner',
-        'windows_agent_installer',
-        'windows_plugin_installer',
-        'worker_installer',
-    )
-}
-
-
-def bake(cmd):
-    return cmd.bake(_err_to_out=True,
-                    _out=lambda l: sys.stdout.write(l),
-                    _tee=True)
-
-
-def docker_proxy():
-    return bake(sh.docker).bake('-H', configuration.docker_host)
-
-
-logger = logging.getLogger(__name__)
+from cloudify_docker.subprocess import docker
+from cloudify_docker.subprocess import ssh_keygen
+from cloudify_docker.subprocess import cfy
+from cloudify_docker.logs import logger
 
 app = argh.EntryPoint('cloudify-docker')
 command = app
-
-docker = proxy_tools.Proxy(docker_proxy)
-ssh_keygen = bake(sh.Command('ssh-keygen'))
-cfy = bake(sh.cfy)
 
 
 @command
@@ -179,16 +98,20 @@ def run(mount=False):
 
 
 @command
+def clean():
+    docker_tag = configuration.installed_image_docker_tag
+    containers = docker.ps(
+        '-aq', '--filter', 'ancestor={}'.format(docker_tag)).split('\n')
+    containers = [c.strip() for c in containers if c.strip()]
+    if containers:
+        docker.rm('-f', ' '.join(containers))
+
+
+@command
 def restart_services(container_id=None):
     container_id = container_id or work.last_container_id
-    for service in SERVICES:
+    for service in constants.SERVICES:
         _restart_service(container_id, service)
-
-
-def _restart_service(container_id, service):
-    service_name = 'cloudify-{}'.format(service)
-    logger.info('Restarting {}'.format(service_name))
-    docker('exec', container_id, 'systemctl', 'restart', service_name)
 
 
 @command
@@ -206,9 +129,9 @@ def watch(container_id=None):
                 with services_to_restart_lock:
                     services_to_restart.update(self.services)
     observer = observers.Observer()
-    for package, services in PACKAGE_DIR_SERVICES.items():
+    for package, services in constants.PACKAGE_DIR_SERVICES.items():
         src = '{}/{}/{}'.format(configuration.source_root,
-                                PACKAGE_DIR[package],
+                                constants.PACKAGE_DIR[package],
                                 package)
         observer.schedule(Handler(services), path=src, recursive=True)
     observer.start()
@@ -230,12 +153,18 @@ def watch(container_id=None):
         pass
 
 
+def _restart_service(container_id, service):
+    service_name = 'cloudify-{}'.format(service)
+    logger.info('Restarting {}'.format(service_name))
+    docker('exec', container_id, 'systemctl', 'restart', service_name)
+
+
 def _build_volumes():
     volumes = []
-    for env, packages in ENV_PACKAGES.items():
+    for env, packages in constants.ENV_PACKAGES.items():
         for package in packages:
             src = '{}/{}/{}'.format(configuration.source_root,
-                                    PACKAGE_DIR[package],
+                                    constants.PACKAGE_DIR[package],
                                     package)
             dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
                                                                       package)
@@ -243,22 +172,12 @@ def _build_volumes():
     return volumes
 
 
-@command
-def clean():
-    docker_tag = configuration.installed_image_docker_tag
-    containers = docker.ps(
-        '-aq', '--filter', 'ancestor={}'.format(docker_tag)).split('\n')
-    containers = [c.strip() for c in containers if c.strip()]
-    if containers:
-        docker.rm('-f', ' '.join(containers))
-
-
 def _create_base_container():
     docker_tag = configuration.clean_image_docker_tag
     docker.build('-t', configuration.clean_image_docker_tag, resources.DIR)
     container_id, container_ip = _run_container(docker_tag=docker_tag,
-                                                expose=EXPOSE,
-                                                publish=PUBLISH)
+                                                expose=constants.EXPOSE,
+                                                publish=constants.PUBLISH)
     docker('exec', container_id, 'systemctl', 'start', 'dbus')
     return container_id, container_ip
 

@@ -12,23 +12,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-############
 
-import logging
 import sys
 
+import proxy_tools
+import sh
 
-logger = logging.getLogger('cfy-docker')
+from cloudify_docker.configuration import configuration
 
 
-def setup_logging():
-    root_logger = logging.getLogger()
-    root_logger.handlers = []
-    handler = logging.StreamHandler(sys.stdout)
-    fmt = '%(asctime)s [%(levelname)s] %(message)s'
-    handler.setFormatter(logging.Formatter(fmt))
-    handler.setLevel(logging.INFO)
-    root_logger.setLevel(logging.INFO)
-    root_logger.addHandler(handler)
-    sh_logger = logging.getLogger('sh')
-    sh_logger.setLevel(logging.WARNING)
+def bake(cmd):
+    return cmd.bake(_err_to_out=True,
+                    _out=lambda l: sys.stdout.write(l),
+                    _tee=True)
+
+
+def docker_proxy():
+    return bake(sh.docker).bake('-H', configuration.docker_host)
+
+
+docker = proxy_tools.Proxy(docker_proxy)
+ssh_keygen = bake(sh.Command('ssh-keygen'))
+cfy = bake(sh.cfy)
