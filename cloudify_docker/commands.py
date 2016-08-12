@@ -40,9 +40,9 @@ command = app
 
 @command
 @argh.arg('--simple-manager-blueprint-path', required=True)
-def init(docker_host='fd://',
+def init(simple_manager_blueprint_path=None,
+         docker_host='fd://',
          ssh_key_path='~/.ssh/.id_rsa',
-         simple_manager_blueprint_path=None,
          clean_image_docker_tag='cloudify/centos-manager:7',
          installed_image_docker_tag='cloudify/centos-manager-installed:7',
          source_root='~/dev/cloudify',
@@ -53,7 +53,7 @@ def init(docker_host='fd://',
         simple_manager_blueprint_path).expanduser()
     required_files = {
         simple_manager_blueprint_path: 'You must specify a path '
-                                       'to a manager blueprint',
+                                       'to a simple manager blueprint',
         ssh_key_path: 'You need to create a key (see man ssh-keygen) first',
     }
     for required_file, message in required_files.items():
@@ -74,6 +74,7 @@ def init(docker_host='fd://',
 
 
 @command
+@argh.arg('-i', '--inputs', action='append')
 def bootstrap(inputs=None):
     inputs = inputs or []
     container_id, container_ip = _create_base_container()
@@ -124,8 +125,8 @@ def watch(container_id=None):
         def __init__(self, services):
             self.services = services
 
-        def on_modified(self, ev):
-            if ev.is_directory and ev.event_type == events.EVENT_TYPE_MODIFIED:
+        def on_modified(self, event):
+            if event.is_directory:
                 with services_to_restart_lock:
                     services_to_restart.update(self.services)
     observer = observers.Observer()
