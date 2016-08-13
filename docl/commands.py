@@ -223,6 +223,11 @@ def _ssh_setup(container_id, container_ip):
 
 def _cfy_bootstrap(inputs):
     cfy.init(reset=True)
+    cfy_config_path = path('.cloudify') / 'config.yaml'
+    cfy_config = yaml.safe_load(cfy_config_path.text())
+    cfy_config['colors'] = True
+    cfy_config_path.write_text(yaml.safe_dump(cfy_config,
+                                              default_flow_style=False))
     cfy.bootstrap(
         blueprint_path=configuration.simple_manager_blueprint_path,
         *['--inputs={}'.format(i) for i in inputs])
