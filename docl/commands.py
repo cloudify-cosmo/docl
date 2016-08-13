@@ -73,11 +73,21 @@ def init(simple_manager_blueprint_path=None,
 
 
 @command
-@argh.arg('-i', '--inputs', action='append')
-def bootstrap(inputs=None):
+@argh.arg('-i', '--inputs-output', required=True)
+def prepare(inputs_output=None):
     container_id, container_ip = _create_base_container()
     _ssh_setup(container_id=container_id, container_ip=container_ip)
-    _cfy_bootstrap(container_ip=container_ip, inputs=inputs)
+    _write_inputs(container_ip=container_ip, inputs_path=inputs_output)
+
+
+@command
+@argh.arg('-i', '--inputs', action='append')
+def bootstrap(inputs=None):
+    inputs = inputs or []
+    with tempfile.NamedTemporaryFile() as f:
+        prepare(inputs_output=f.name)
+        inputs.insert(0, f.name)
+        _cfy_bootstrap(inputs=inputs)
 
 
 @command
@@ -98,9 +108,12 @@ def run(mount=False):
 
 @command
 def clean():
-    docker_tag = configuration.installed_image_docker_tag
+    docker_tag1 = configuration.clean_image_docker_tag
+    docker_tag2 = configuration.installed_image_docker_tag
     containers = docker.ps(
-        '-aq', '--filter', 'ancestor={}'.format(docker_tag)).split('\n')
+        '-aq',
+        '--filter', 'ancestor={}'.format(docker_tag1),
+        '--filter', 'ancestor={}'.format(docker_tag2)).split('\n')
     containers = [c.strip() for c in containers if c.strip()]
     if containers:
         docker.rm('-f', ' '.join(containers))
@@ -208,18 +221,17 @@ def _ssh_setup(container_id, container_ip):
         docker.cp(f.name, '{}:/root/.ssh/authorized_keys'.format(container_id))
 
 
-def _cfy_bootstrap(container_ip, inputs=None):
-    inputs = inputs or []
-    with tempfile.NamedTemporaryFile() as f:
-        f.write(yaml.safe_dump({
-            'public_ip': container_ip,
-            'private_ip': container_ip,
-            'ssh_user': 'root',
-            'ssh_key_filename': str(configuration.ssh_key_path),
-        }))
-        f.flush()
-        inputs.insert(0, f.name)
-        cfy.init('-r')
-        cfy.bootstrap(
-            blueprint_path=configuration.simple_manager_blueprint_path,
-            *['--inputs={}'.format(i) for i in inputs])
+def _cfy_bootstrap(inputs):
+    cfy.init(reset=True)
+    cfy.bootstrap(
+        blueprint_path=configuration.simple_manager_blueprint_path,
+        *['--inputs={}'.format(i) for i in inputs])
+
+
+def _write_inputs(container_ip, inputs_path):
+    path(inputs_path).write_text(yaml.safe_dump({
+        'public_ip': container_ip,
+        'private_ip': container_ip,
+        'ssh_user': 'root',
+        'ssh_key_filename': str(configuration.ssh_key_path),
+    }))
