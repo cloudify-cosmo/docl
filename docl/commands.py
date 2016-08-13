@@ -73,8 +73,8 @@ def init(simple_manager_blueprint_path=None,
 
 
 @command
-@argh.arg('-i', '--inputs-output', required=True)
 def prepare(inputs_output=None):
+    inputs_output = inputs_output or constants.INPUTS_YAML
     container_id, container_ip = _create_base_container()
     _ssh_setup(container_id=container_id, container_ip=container_ip)
     _write_inputs(container_ip=container_ip, inputs_path=inputs_output)
@@ -115,8 +115,8 @@ def clean():
         '--filter', 'ancestor={}'.format(docker_tag1),
         '--filter', 'ancestor={}'.format(docker_tag2)).split('\n')
     containers = [c.strip() for c in containers if c.strip()]
-    if containers:
-        docker.rm('-f', ' '.join(containers))
+    for container in containers:
+        docker.rm('-f', container)
 
 
 @command

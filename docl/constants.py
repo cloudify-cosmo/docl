@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+INPUTS_YAML = 'inputs.yaml'
 DOCKER_HOST = 'fd://'
 SSH_KEY = '~/.ssh/.id_rsa'
 CLEAN_IMAGE_DOCKER_TAG = 'cloudify/centos-manager:7'
