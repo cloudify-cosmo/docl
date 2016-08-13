@@ -50,7 +50,7 @@ PACKAGE_DIR_SERVICES = {
 
 ENV_PACKAGES = {
     'amqpinflux': (
-        'amqp_influxdb'
+        'amqp_influxdb',
     ),
     'manager': (
         'cloudify',
