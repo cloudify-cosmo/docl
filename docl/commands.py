@@ -40,11 +40,11 @@ command = app
 @command
 @argh.arg('--simple-manager-blueprint-path', required=True)
 def init(simple_manager_blueprint_path=None,
-         docker_host='fd://',
-         ssh_key_path='~/.ssh/.id_rsa',
-         clean_image_docker_tag='cloudify/centos-manager:7',
-         installed_image_docker_tag='cloudify/centos-manager-installed:7',
-         source_root='~/dev/cloudify',
+         docker_host=constants.DOCKER_HOST,
+         ssh_key_path=constants.SSH_KEY,
+         clean_image_docker_tag=constants.CLEAN_IMAGE_DOCKER_TAG,
+         installed_image_docker_tag=constants.INSTALLED_IMAGE_DOCKER_TAG,
+         source_root=constants.SOURCE_ROOT,
          workdir=None,
          reset=False):
     ssh_key_path = path(ssh_key_path).expanduser()
@@ -67,6 +67,8 @@ def init(simple_manager_blueprint_path=None,
         source_root=source_root,
         workdir=workdir,
         reset=reset)
+    logger.info('Configuration is saved to {}. Feel free to change it to your '
+                'liking.'.format(configuration.conf_path))
     work.init()
 
 
@@ -107,7 +109,7 @@ def clean():
 @command
 def restart_services(container_id=None):
     container_id = container_id or work.last_container_id
-    for service in constants.SERVICES:
+    for service in configuration.services:
         _restart_service(container_id, service)
 
 
@@ -119,16 +121,16 @@ def watch(container_id=None):
 
     class Handler(events.FileSystemEventHandler):
         def __init__(self, services):
-            self.services = services
+            self.services = set(services)
 
         def on_modified(self, event):
             if event.is_directory:
                 with services_to_restart_lock:
                     services_to_restart.update(self.services)
     observer = observers.Observer()
-    for package, services in constants.PACKAGE_DIR_SERVICES.items():
+    for package, services in configuration.package_services.items():
         src = '{}/{}/{}'.format(configuration.source_root,
-                                constants.PACKAGE_DIR[package],
+                                configuration.package_dir[package],
                                 package)
         observer.schedule(Handler(services), path=src, recursive=True)
     observer.start()
@@ -151,17 +153,16 @@ def watch(container_id=None):
 
 
 def _restart_service(container_id, service):
-    service_name = 'cloudify-{}'.format(service)
-    logger.info('Restarting {}'.format(service_name))
-    docker('exec', container_id, 'systemctl', 'restart', service_name)
+    logger.info('Restarting {}'.format(service))
+    docker('exec', container_id, 'systemctl', 'restart', service)
 
 
 def _build_volumes():
     volumes = []
-    for env, packages in constants.ENV_PACKAGES.items():
+    for env, packages in configuration.env_packages.items():
         for package in packages:
             src = '{}/{}/{}'.format(configuration.source_root,
-                                    constants.PACKAGE_DIR[package],
+                                    configuration.package_dir[package],
                                     package)
             dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
                                                                       package)
@@ -172,19 +173,18 @@ def _build_volumes():
 def _create_base_container():
     docker_tag = configuration.clean_image_docker_tag
     docker.build('-t', configuration.clean_image_docker_tag, resources.DIR)
-    container_id, container_ip = _run_container(docker_tag=docker_tag,
-                                                expose=constants.EXPOSE,
-                                                publish=constants.PUBLISH)
+    container_id, container_ip = _run_container(docker_tag=docker_tag)
     docker('exec', container_id, 'systemctl', 'start', 'dbus')
     return container_id, container_ip
 
 
-def _run_container(docker_tag, expose=None, publish=None, volume=None):
-    expose = expose or []
-    publish = publish or []
+def _run_container(docker_tag, volume=None):
     volume = volume or []
+    expose = configuration.expose
+    publish = configuration.publish
+    hostname = configuration.container_hostname
     container_id = docker.run(*['--privileged', '--detach'] +
-                               ['--hostname=cfy-manager'] +
+                               ['--hostname={}'.format(hostname)] +
                                ['--expose={}'.format(e) for e in expose] +
                                ['--publish={}'.format(p) for p in publish] +
                                ['--volume={}'.format(v) for v in volume] +

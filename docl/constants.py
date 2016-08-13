@@ -13,10 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+DOCKER_HOST = 'fd://'
+SSH_KEY = '~/.ssh/.id_rsa'
+CLEAN_IMAGE_DOCKER_TAG = 'cloudify/centos-manager:7'
+INSTALLED_IMAGE_DOCKER_TAG = 'cloudify/centos-manager-installed:7'
+SOURCE_ROOT = '~/dev/cloudify'
+HOSTNAME = 'cfy-manager'
+
 EXPOSE = (22, 80, 443, 5671)
 PUBLISH = ()
 
-SERVICES = ('amqpinflux', 'mgmtworker', 'restservice')
+SERVICES = (
+    'cloudify-amqpinflux',
+    'cloudify-mgmtworker',
+    'cloudify-restservice',
+)
 
 PACKAGE_DIR = {
     'amqp_influxdb': 'cloudify-amqp-influxdb',
@@ -33,19 +44,19 @@ PACKAGE_DIR = {
     'cloudify_system_workflows': 'cloudify-manager/workflows'
 }
 
-PACKAGE_DIR_SERVICES = {
-    'amqp_influxdb': {'amqpinflux'},
-    'cloudify': {'restservice', 'mgmtworker'},
-    'cloudify_agent': {'restservice', 'mgmtworker'},
-    'cloudify_rest_client': {'restservice', 'mgmtworker'},
-    'dsl_parser': {'restservice', 'mgmtworker'},
-    'manager_rest': {'restservice'},
-    'plugin_installer': {'restservice', 'mgmtworker'},
-    'script_runner': {'restservice', 'mgmtworker'},
-    'windows_agent_installer': {'restservice', 'mgmtworker'},
-    'windows_plugin_installer': {'restservice', 'mgmtworker'},
-    'worker_installer': {'restservice', 'mgmtworker'},
-    'cloudify_system_workflows': {'mgmtworker'}
+PACKAGE_SERVICES = {
+    'amqp_influxdb': ('cloudify-amqpinflux',),
+    'cloudify': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'cloudify_agent': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'cloudify_rest_client': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'dsl_parser': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'manager_rest': ('cloudify-restservice',),
+    'plugin_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'script_runner': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'windows_agent_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'windows_plugin_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),  # noqa
+    'worker_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'cloudify_system_workflows': ('cloudify-mgmtworker',),
 }
 
 ENV_PACKAGES = {

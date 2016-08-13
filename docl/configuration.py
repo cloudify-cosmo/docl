@@ -18,6 +18,8 @@ import argh
 import yaml
 from path import path
 
+from docl import constants
+
 
 class Configuration(object):
 
@@ -45,7 +47,14 @@ class Configuration(object):
             'clean_image_docker_tag': clean_image_docker_tag,
             'installed_image_docker_tag': installed_image_docker_tag,
             'source_root': source_root,
-            'workdir': str(workdir)
+            'workdir': str(workdir),
+            'services': constants.SERVICES,
+            'expose': constants.EXPOSE,
+            'publish': constants.PUBLISH,
+            'container_hostname': constants.HOSTNAME,
+            'package_dir': constants.PACKAGE_DIR,
+            'package_services': constants.PACKAGE_SERVICES,
+            'env_packages': constants.ENV_PACKAGES
         }, default_flow_style=False))
 
     @property
@@ -53,11 +62,14 @@ class Configuration(object):
         return path('~/.docl').expanduser()
 
     @property
+    def conf_path(self):
+        return self.conf_dir / 'config.yaml'
+
+    @property
     def conf(self):
-        conf = self.conf_dir / 'config.yaml'
-        if not conf.exists():
+        if not self.conf_path.exists():
             raise argh.CommandError('Not initialized. Run "docl init"')
-        return yaml.safe_load(conf.text())
+        return yaml.safe_load(self.conf_path.text())
 
     @property
     def docker_host(self):
@@ -82,6 +94,34 @@ class Configuration(object):
     @property
     def source_root(self):
         return path(self.conf.get('source_root')).expanduser().abspath()
+
+    @property
+    def services(self):
+        return self.conf.get('services')
+
+    @property
+    def expose(self):
+        return self.conf.get('expose')
+
+    @property
+    def publish(self):
+        return self.conf.get('publish')
+
+    @property
+    def container_hostname(self):
+        return self.conf.get('container_hostname')
+
+    @property
+    def package_dir(self):
+        return self.conf.get('package_dir')
+
+    @property
+    def package_services(self):
+        return self.conf.get('package_services')
+
+    @property
+    def env_packages(self):
+        return self.conf.get('env_packages')
 
     @property
     def workdir(self):
