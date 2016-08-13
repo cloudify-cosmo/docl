@@ -18,7 +18,7 @@ import logging
 import sys
 
 
-logger = logging.getLogger('cfy-docker')
+logger = logging.getLogger('docl')
 
 
 def setup_logging():

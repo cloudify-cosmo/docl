@@ -19,7 +19,6 @@ import time
 import threading
 
 import argh
-import sh
 import yaml
 from watchdog import events
 from watchdog import observers
@@ -59,12 +58,10 @@ def init(simple_manager_blueprint_path=None,
     for required_file, message in required_files.items():
         if not required_file.isfile():
             raise argh.CommandError(message)
-    ssh_public_key = ssh_keygen('-y', '-f', ssh_key_path).strip()
     configuration.save(
         docker_host=docker_host,
         simple_manager_blueprint_path=simple_manager_blueprint_path.abspath(),
         ssh_key_path=ssh_key_path.abspath(),
-        ssh_public_key=ssh_public_key,
         clean_image_docker_tag=clean_image_docker_tag,
         installed_image_docker_tag=installed_image_docker_tag,
         source_root=source_root,
@@ -76,7 +73,6 @@ def init(simple_manager_blueprint_path=None,
 @command
 @argh.arg('-i', '--inputs', action='append')
 def bootstrap(inputs=None):
-    inputs = inputs or []
     container_id, container_ip = _create_base_container()
     _ssh_setup(container_id=container_id, container_ip=container_ip)
     _cfy_bootstrap(container_ip=container_ip, inputs=inputs)
@@ -204,18 +200,16 @@ def _run_container(docker_tag, expose=None, publish=None, volume=None):
 
 def _ssh_setup(container_id, container_ip):
     ssh_keygen('-R', container_ip)
-    try:
-        docker('exec', container_id, 'mkdir', '-m700', '/root/.ssh')
-    except sh.ErrorReturnCode as e:
-        if e.exit_code != 1:
-            raise
+    docker('exec', container_id, 'mkdir', '-p', '/root/.ssh')
+    ssh_public_key = ssh_keygen('-y', '-f', configuration.ssh_key_path).strip()
     with tempfile.NamedTemporaryFile() as f:
-        f.write(configuration.ssh_public_key)
+        f.write(ssh_public_key)
         f.flush()
         docker.cp(f.name, '{}:/root/.ssh/authorized_keys'.format(container_id))
 
 
-def _cfy_bootstrap(container_ip, inputs):
+def _cfy_bootstrap(container_ip, inputs=None):
+    inputs = inputs or []
     with tempfile.NamedTemporaryFile() as f:
         f.write(yaml.safe_dump({
             'public_ip': container_ip,

@@ -24,7 +24,6 @@ class Configuration(object):
     def save(self,
              docker_host,
              ssh_key_path,
-             ssh_public_key,
              simple_manager_blueprint_path,
              clean_image_docker_tag,
              installed_image_docker_tag,
@@ -36,13 +35,12 @@ class Configuration(object):
         conf = self.conf_dir / 'config.yaml'
         if conf.exists() and not reset:
             raise argh.CommandError('Already initialized. '
-                                    'Run "cfy-docker init --reset"')
+                                    'Run "docl init --reset"')
         workdir = workdir or self.conf_dir / 'work'
         workdir = path(workdir).expanduser().abspath()
         conf.write_text(yaml.safe_dump({
             'simple_manager_blueprint_path': str(simple_manager_blueprint_path),  # noqa
             'ssh_key_path': str(ssh_key_path),
-            'ssh_public_key': ssh_public_key,
             'docker_host': docker_host,
             'clean_image_docker_tag': clean_image_docker_tag,
             'installed_image_docker_tag': installed_image_docker_tag,
@@ -52,13 +50,13 @@ class Configuration(object):
 
     @property
     def conf_dir(self):
-        return path('~/.cfy-docker').expanduser()
+        return path('~/.docl').expanduser()
 
     @property
     def conf(self):
         conf = self.conf_dir / 'config.yaml'
         if not conf.exists():
-            raise argh.CommandError('Not initialized. Run "cfy-docker init"')
+            raise argh.CommandError('Not initialized. Run "docl init"')
         return yaml.safe_load(conf.text())
 
     @property
@@ -68,10 +66,6 @@ class Configuration(object):
     @property
     def ssh_key_path(self):
         return path(self.conf.get('ssh_key_path'))
-
-    @property
-    def ssh_public_key(self):
-        return self.conf.get('ssh_public_key')
 
     @property
     def simple_manager_blueprint_path(self):
