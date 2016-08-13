@@ -33,7 +33,7 @@ from docl.subprocess import ssh_keygen
 from docl.subprocess import cfy
 from docl.logs import logger
 
-app = argh.EntryPoint('cloudify-docker')
+app = argh.EntryPoint('docl')
 command = app
 
 
