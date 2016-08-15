@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
+
+import subprocess
 import sys
 
 import proxy_tools
@@ -34,3 +38,7 @@ def docker_proxy():
 docker = proxy_tools.Proxy(docker_proxy)
 ssh_keygen = bake(sh.Command('ssh-keygen'))
 cfy = bake(sh.cfy)
+
+
+def ssh(ip, keypath):
+    subprocess.call(['ssh', '-i', keypath, 'root@{}'.format(ip)])

@@ -29,6 +29,7 @@ from docl import resources
 from docl.configuration import configuration
 from docl.work import work
 from docl.subprocess import docker
+from docl.subprocess import ssh as _ssh
 from docl.subprocess import ssh_keygen
 from docl.subprocess import cfy
 from docl.logs import logger
@@ -127,6 +128,15 @@ def restart_services(container_id=None):
 
 
 @command
+def ssh(container_id=None):
+    if not container_id:
+        container_ip = work.last_container_ip
+    else:
+        container_ip = _extract_container_ip(container_id)
+    _ssh(container_ip, configuration.ssh_key_path)
+
+
+@command
 def watch(container_id=None):
     container_id = container_id or work.last_container_id
     services_to_restart = set()
@@ -202,13 +212,17 @@ def _run_container(docker_tag, volume=None):
                                ['--publish={}'.format(p) for p in publish] +
                                ['--volume={}'.format(v) for v in volume] +
                                [docker_tag]).strip()
-    container_ip = docker.inspect(
-        '--format={{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
-        container_id,
-    ).strip()
+    container_ip = _extract_container_ip(container_id)
     work.save_last_container_id_and_ip(container_id=container_id,
                                        container_ip=container_ip)
     return container_id, container_ip
+
+
+def _extract_container_ip(container_id):
+    return docker.inspect(
+        '--format={{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
+        container_id,
+    ).strip()
 
 
 def _ssh_setup(container_id, container_ip):
