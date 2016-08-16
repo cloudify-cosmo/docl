@@ -20,6 +20,9 @@ CLEAN_IMAGE_DOCKER_TAG = 'cloudify/centos-manager:7'
 INSTALLED_IMAGE_DOCKER_TAG = 'cloudify/centos-manager-installed:7'
 SOURCE_ROOT = '~/dev/cloudify'
 HOSTNAME = 'cfy-manager'
+AGENT_PACKAGE_PATH = '/opt/manager/resources/packages/agents/centos-core-agent.tar.gz'  # noqa
+AGENT_TEMPLATE_DIR = '/opt/agent-template'
+AGENT_STUB_SERVICE = 'agent-service'
 
 EXPOSE = (22, 80, 443, 5671)
 PUBLISH = ()
@@ -44,24 +47,60 @@ PACKAGE_DIR = {
     'worker_installer': 'cloudify-agent',
     'cloudify_system_workflows': 'cloudify-manager/workflows',
     'flask_securest': 'flask-securest',
-    'riemann_controller': 'cloudify-manager/riemann-controller'
+    'riemann_controller': 'cloudify-manager/plugins/riemann-controller',
+    'diamond_agent': 'cloudify-diamond-plugin',
+    'cloudify_handler': 'cloudify-diamond-plugin'
 }
 
 PACKAGE_SERVICES = {
     'amqp_influxdb': ('cloudify-amqpinflux',),
-    'cloudify': ('cloudify-restservice', 'cloudify-mgmtworker'),
-    'cloudify_agent': ('cloudify-restservice', 'cloudify-mgmtworker'),
-    'cloudify_rest_client': ('cloudify-restservice', 'cloudify-mgmtworker'),
-    'dsl_parser': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'cloudify': (
+        'cloudify-restservice',
+        'cloudify-mgmtworker',
+        AGENT_STUB_SERVICE
+    ),
+    'cloudify_agent': (
+        'cloudify-restservice',
+        'cloudify-mgmtworker',
+        AGENT_STUB_SERVICE
+    ),
+    'cloudify_rest_client': (
+        'cloudify-restservice',
+        'cloudify-mgmtworker',
+        AGENT_STUB_SERVICE
+    ),
+    'dsl_parser': ('cloudify-restservice',),
     'manager_rest': ('cloudify-restservice',),
-    'plugin_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),
-    'script_runner': ('cloudify-restservice', 'cloudify-mgmtworker'),
-    'windows_agent_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),
-    'windows_plugin_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),  # noqa
-    'worker_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),
+    'plugin_installer': (
+        'cloudify-restservice',
+        'cloudify-mgmtworker',
+        AGENT_STUB_SERVICE
+    ),
+    'script_runner': (
+        'cloudify-restservice',
+        'cloudify-mgmtworker',
+        AGENT_STUB_SERVICE
+    ),
+    'windows_agent_installer': (
+        'cloudify-restservice',
+        'cloudify-mgmtworker',
+        AGENT_STUB_SERVICE
+    ),
+    'windows_plugin_installer': (
+        'cloudify-restservice',
+        'cloudify-mgmtworker',
+        AGENT_STUB_SERVICE
+    ),
+    'worker_installer': (
+        'cloudify-restservice',
+        'cloudify-mgmtworker',
+        AGENT_STUB_SERVICE
+    ),
     'cloudify_system_workflows': ('cloudify-mgmtworker',),
     'riemann_controller': ('cloudify-mgmtworker',),
-    'flask_securest': ('cloudify-restservice',)
+    'flask_securest': ('cloudify-restservice',),
+    'diamond_agent': (AGENT_STUB_SERVICE,),
+    'cloudify_handler': (AGENT_STUB_SERVICE,),
 }
 
 ENV_PACKAGES = {
@@ -86,12 +125,23 @@ ENV_PACKAGES = {
         'cloudify_agent',
         'cloudify_system_workflows',
         'cloudify_rest_client',
-        'dsl_parser',
         'plugin_installer',
         'script_runner',
         'windows_agent_installer',
         'windows_plugin_installer',
         'worker_installer',
+    ),
+    'agent-template': (
+        'cloudify',
+        'cloudify_agent',
+        'cloudify_rest_client',
+        'plugin_installer',
+        'script_runner',
+        'windows_agent_installer',
+        'windows_plugin_installer',
+        'worker_installer',
+        'diamond_agent',
+        'cloudify_handler',
     )
 }
 

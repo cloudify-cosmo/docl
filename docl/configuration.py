@@ -56,6 +56,7 @@ class Configuration(object):
             'package_services': constants.PACKAGE_SERVICES,
             'env_packages': constants.ENV_PACKAGES,
             'resources': constants.RESOURCES,
+            'agent_package_path': constants.AGENT_PACKAGE_PATH,
         }, default_flow_style=False))
 
     @property
@@ -127,6 +128,10 @@ class Configuration(object):
     @property
     def resources(self):
         return self.conf.get('resources')
+
+    @property
+    def agent_package_path(self):
+        return self.conf.get('agent_package_path')
 
     @property
     def workdir(self):

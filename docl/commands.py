@@ -92,9 +92,15 @@ def bootstrap(inputs=None):
 
 
 @command
-def save_image(container_id=None):
+def save_image(container_id=None, prepare_agent=False):
     container_id = container_id or work.last_container_id
     docker_tag = configuration.installed_image_docker_tag
+    if prepare_agent:
+        docker('exec', container_id, 'mkdir', '-p',
+               constants.AGENT_TEMPLATE_DIR)
+        docker('exec', container_id, 'tar', 'xf',
+               configuration.agent_package_path, '--strip=1', '-C',
+               constants.AGENT_TEMPLATE_DIR)
     docker.stop(container_id)
     docker.commit(container_id, docker_tag)
     docker.rm('-f', container_id)
@@ -121,10 +127,12 @@ def clean():
 
 
 @command
-def restart_services(container_id=None):
+def restart_services(container_id=None, rebuild_agent=False):
     container_id = container_id or work.last_container_id
     for service in configuration.services:
         _restart_service(container_id, service)
+    if rebuild_agent:
+        build_agent(container_id)
 
 
 @command
@@ -137,7 +145,17 @@ def ssh(container_id=None):
 
 
 @command
-def watch(container_id=None):
+def build_agent(container_id=None):
+    logger.info('Rebuilding agent package')
+    container_id = container_id or work.last_container_id
+    docker('exec', container_id, 'tar', 'czf',
+           configuration.agent_package_path, '-C',
+           path(constants.AGENT_TEMPLATE_DIR).dirname(),
+           path(constants.AGENT_TEMPLATE_DIR).basename())
+
+
+@command
+def watch(container_id=None, rebuild_agent=False, interval=2):
     container_id = container_id or work.last_container_id
     services_to_restart = set()
     services_to_restart_lock = threading.Lock()
@@ -165,8 +183,11 @@ def watch(container_id=None):
             current_services_to_restart = services_to_restart.copy()
             services_to_restart.clear()
         for service in current_services_to_restart:
-            _restart_service(container_id, service)
-        scheduler.enter(2, 1, restart_changed_services, ())
+            if service == constants.AGENT_STUB_SERVICE and rebuild_agent:
+                build_agent(container_id)
+            else:
+                _restart_service(container_id, service)
+        scheduler.enter(interval, 1, restart_changed_services, ())
     restart_changed_services()
 
     try:
@@ -239,17 +260,20 @@ def _ssh_setup(container_id, container_ip):
 
 
 def _cfy_bootstrap(inputs):
-    # cfy.init(reset=True)
-    # cfy_config_path = path('.cloudify') / 'config.yaml'
-    # cfy_config = yaml.safe_load(cfy_config_path.text())
-    # cfy_config['colors'] = True
-    # cfy_config_path.write_text(yaml.safe_dump(cfy_config,
-    #                                           default_flow_style=False))
-    # cfy.bootstrap(
-    #     blueprint_path=configuration.simple_manager_blueprint_path,
-    #     *['--inputs={}'.format(i) for i in inputs])
-    cfy.bootstrap(configuration.simple_manager_blueprint_path,
-                  *['--inputs={}'.format(i) for i in inputs])
+    try:
+        from cloudify_cli import env
+        cfy.bootstrap(configuration.simple_manager_blueprint_path,
+                      *['--inputs={}'.format(i) for i in inputs])
+    except ImportError:
+        cfy.init(reset=True)
+        cfy_config_path = path('.cloudify') / 'config.yaml'
+        cfy_config = yaml.safe_load(cfy_config_path.text())
+        cfy_config['colors'] = True
+        cfy_config_path.write_text(yaml.safe_dump(cfy_config,
+                                                  default_flow_style=False))
+        cfy.bootstrap(
+            blueprint_path=configuration.simple_manager_blueprint_path,
+            *['--inputs={}'.format(i) for i in inputs])
 
 
 def _write_inputs(container_ip, inputs_path):
