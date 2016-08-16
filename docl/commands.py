@@ -261,7 +261,7 @@ def _ssh_setup(container_id, container_ip):
 
 def _cfy_bootstrap(inputs):
     try:
-        from cloudify_cli import env
+        from cloudify_cli import env  # noqa
         cfy.bootstrap(configuration.simple_manager_blueprint_path,
                       *['--inputs={}'.format(i) for i in inputs])
     except ImportError:
