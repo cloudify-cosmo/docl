@@ -42,7 +42,9 @@ PACKAGE_DIR = {
     'windows_agent_installer': 'cloudify-agent',
     'windows_plugin_installer': 'cloudify-agent',
     'worker_installer': 'cloudify-agent',
-    'cloudify_system_workflows': 'cloudify-manager/workflows'
+    'cloudify_system_workflows': 'cloudify-manager/workflows',
+    'flask_securest': 'flask-securest',
+    'riemann_controller': 'cloudify-manager/riemann-controller'
 }
 
 PACKAGE_SERVICES = {
@@ -58,6 +60,8 @@ PACKAGE_SERVICES = {
     'windows_plugin_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),  # noqa
     'worker_installer': ('cloudify-restservice', 'cloudify-mgmtworker'),
     'cloudify_system_workflows': ('cloudify-mgmtworker',),
+    'riemann_controller': ('cloudify-mgmtworker',),
+    'flask_securest': ('cloudify-restservice',)
 }
 
 ENV_PACKAGES = {
@@ -75,6 +79,7 @@ ENV_PACKAGES = {
         'windows_agent_installer',
         'windows_plugin_installer',
         'worker_installer',
+        'flask_securest',
     ),
     'mgmtworker': (
         'cloudify',
@@ -88,4 +93,8 @@ ENV_PACKAGES = {
         'windows_plugin_installer',
         'worker_installer',
     )
+}
+
+RESOURCES = {
+    'cloudify-manager/resources/rest-service/cloudify': '/opt/manager/resources/cloudify'  # noqa
 }

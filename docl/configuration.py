@@ -54,7 +54,8 @@ class Configuration(object):
             'container_hostname': constants.HOSTNAME,
             'package_dir': constants.PACKAGE_DIR,
             'package_services': constants.PACKAGE_SERVICES,
-            'env_packages': constants.ENV_PACKAGES
+            'env_packages': constants.ENV_PACKAGES,
+            'resources': constants.RESOURCES,
         }, default_flow_style=False))
 
     @property
@@ -122,6 +123,10 @@ class Configuration(object):
     @property
     def env_packages(self):
         return self.conf.get('env_packages')
+
+    @property
+    def resources(self):
+        return self.conf.get('resources')
 
     @property
     def workdir(self):

@@ -190,6 +190,9 @@ def _build_volumes():
             dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
                                                                       package)
             volumes.append('{}:{}:ro'.format(src, dst))
+    for resource_source, resource_target in configuration.resources.items():
+        src = '{}/{}'.format(configuration.source_root, resource_source)
+        volumes.append('{}:{}:ro'.format(src, resource_target))
     return volumes
 
 
@@ -236,15 +239,17 @@ def _ssh_setup(container_id, container_ip):
 
 
 def _cfy_bootstrap(inputs):
-    cfy.init(reset=True)
-    cfy_config_path = path('.cloudify') / 'config.yaml'
-    cfy_config = yaml.safe_load(cfy_config_path.text())
-    cfy_config['colors'] = True
-    cfy_config_path.write_text(yaml.safe_dump(cfy_config,
-                                              default_flow_style=False))
-    cfy.bootstrap(
-        blueprint_path=configuration.simple_manager_blueprint_path,
-        *['--inputs={}'.format(i) for i in inputs])
+    # cfy.init(reset=True)
+    # cfy_config_path = path('.cloudify') / 'config.yaml'
+    # cfy_config = yaml.safe_load(cfy_config_path.text())
+    # cfy_config['colors'] = True
+    # cfy_config_path.write_text(yaml.safe_dump(cfy_config,
+    #                                           default_flow_style=False))
+    # cfy.bootstrap(
+    #     blueprint_path=configuration.simple_manager_blueprint_path,
+    #     *['--inputs={}'.format(i) for i in inputs])
+    cfy.bootstrap(configuration.simple_manager_blueprint_path,
+                  *['--inputs={}'.format(i) for i in inputs])
 
 
 def _write_inputs(container_ip, inputs_path):
