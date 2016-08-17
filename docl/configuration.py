@@ -14,6 +14,8 @@
 # limitations under the License.
 ############
 
+import os
+
 import argh
 import yaml
 from path import path
@@ -61,7 +63,8 @@ class Configuration(object):
 
     @property
     def conf_dir(self):
-        return path('~/.docl').expanduser()
+        return path(os.environ.get(constants.DOCL_HOME_ENV_VAR,
+                                   '~/.docl')).expanduser()
 
     @property
     def conf_path(self):

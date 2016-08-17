@@ -211,9 +211,15 @@ def _build_volumes():
             dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
                                                                       package)
             volumes.append('{}:{}:ro'.format(src, dst))
-    for resource_source, resource_target in configuration.resources.items():
-        src = '{}/{}'.format(configuration.source_root, resource_source)
-        volumes.append('{}:{}:ro'.format(src, resource_target))
+    for resource in configuration.resources.items():
+        if resource.get('write'):
+            permissions = 'rw'
+        else:
+            permissions = 'ro'
+        src = resource['src']
+        if not path(src).isabs():
+            src = '{}/{}'.format(configuration.source_root, src)
+        volumes.append('{}:{}:{}'.format(src, resource['dst'], permissions))
     return volumes
 
 

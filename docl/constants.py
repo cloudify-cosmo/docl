@@ -23,6 +23,7 @@ HOSTNAME = 'cfy-manager'
 AGENT_PACKAGE_PATH = '/opt/manager/resources/packages/agents/centos-core-agent.tar.gz'  # noqa
 AGENT_TEMPLATE_DIR = '/opt/agent-template'
 AGENT_STUB_SERVICE = 'agent-service'
+DOCL_HOME_ENV_VAR = 'DOCL_HOME'
 
 EXPOSE = (22, 80, 443, 5671)
 PUBLISH = ()
@@ -145,7 +146,13 @@ ENV_PACKAGES = {
     )
 }
 
-RESOURCES = {
-    'cloudify-manager/resources/rest-service/cloudify': '/opt/manager/resources/cloudify',  # noqa
-    'cloudify-manager/plugins/riemann-controller/riemann_controller/resources/manager.config': '/etc/riemann/conf.d/manager.config'  # noqa
-}
+RESOURCES = (
+    {
+        'src': 'cloudify-manager/resources/rest-service/cloudify',
+        'dst': '/opt/manager/resources/cloudify'
+    },
+    {
+        'src': 'cloudify-manager/plugins/riemann-controller/riemann_controller/resources/manager.config',  # noqa
+        'dst': '/etc/riemann/conf.d/manager.config'
+    },
+)
