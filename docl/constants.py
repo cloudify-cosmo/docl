@@ -146,5 +146,6 @@ ENV_PACKAGES = {
 }
 
 RESOURCES = {
-    'cloudify-manager/resources/rest-service/cloudify': '/opt/manager/resources/cloudify'  # noqa
+    'cloudify-manager/resources/rest-service/cloudify': '/opt/manager/resources/cloudify',  # noqa
+    'cloudify-manager/plugins/riemann-controller/riemann_controller/resources/manager.config': '/etc/riemann/conf.d/manager.config'  # noqa
 }
