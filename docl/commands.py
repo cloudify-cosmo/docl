@@ -196,13 +196,22 @@ def watch(container_id=None, rebuild_agent=False, interval=2):
         pass
 
 
+@command
+@argh.named('exec')
+def exc(container_id=None, *args):
+    container_id = container_id or work.last_container_id
+    docker('exec', container_id, *args)
+
+
 def _restart_service(container_id, service):
     logger.info('Restarting {}'.format(service))
     docker('exec', container_id, 'systemctl', 'restart', service)
 
 
 def _build_volumes():
-    volumes = []
+    # resources should be able to override env packages which is why
+    # we use a dist based in the destination directory
+    volumes = {}
     for env, packages in configuration.env_packages.items():
         for package in packages:
             src = '{}/{}/{}'.format(configuration.source_root,
@@ -210,8 +219,9 @@ def _build_volumes():
                                     package)
             dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
                                                                       package)
-            volumes.append('{}:{}:ro'.format(src, dst))
-    for resource in configuration.resources.items():
+            volumes[dst] = '{}:{}:ro'.format(src, dst)
+    for resource in configuration.resources:
+        dst = resource['dst']
         if resource.get('write'):
             permissions = 'rw'
         else:
@@ -219,8 +229,8 @@ def _build_volumes():
         src = resource['src']
         if not path(src).isabs():
             src = '{}/{}'.format(configuration.source_root, src)
-        volumes.append('{}:{}:{}'.format(src, resource['dst'], permissions))
-    return volumes
+        volumes[dst] = '{}:{}:{}'.format(src, dst, permissions)
+    return volumes.values()
 
 
 def _create_base_container():
