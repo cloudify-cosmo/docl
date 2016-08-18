@@ -198,9 +198,9 @@ def watch(container_id=None, rebuild_agent=False, interval=2):
 
 @command
 @argh.named('exec')
-def exc(container_id=None, *args):
+def exc(command, container_id=None):
     container_id = container_id or work.last_container_id
-    docker('exec', container_id, *args)
+    docker('exec', container_id, *command.split(' '))
 
 
 def _restart_service(container_id, service):
