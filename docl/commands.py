@@ -276,12 +276,12 @@ def _ssh_setup(container_id, container_ip):
 
 
 def _cfy_bootstrap(inputs):
+    cfy.init(r=True)
     try:
         from cloudify_cli import env  # noqa
         cfy.bootstrap(configuration.simple_manager_blueprint_path,
                       *['--inputs={}'.format(i) for i in inputs])
     except ImportError:
-        cfy.init(reset=True)
         cfy_config_path = path('.cloudify') / 'config.yaml'
         cfy_config = yaml.safe_load(cfy_config_path.text())
         cfy_config['colors'] = True
