@@ -203,6 +203,19 @@ def exc(command, container_id=None):
     docker('exec', container_id, *command.split(' '))
 
 
+@command
+def cp(source, target, container_id=None):
+    container_id = container_id or work.last_container_id
+    if source.startswith(':'):
+        source = '{}{}'.format(container_id, source)
+    elif target.startswith(':'):
+        target = '{}{}'.format(container_id, target)
+    else:
+        raise argh.CommandError('Either source or target should be prefixed '
+                                'with : to denote the container.')
+    docker.cp(source, target)
+
+
 def _restart_service(container_id, service):
     logger.info('Restarting {}'.format(service))
     docker('exec', container_id, 'systemctl', 'restart', service)
