@@ -122,7 +122,6 @@ def install_docker(version=None, container_id=None):
         return
     except sh.ErrorReturnCode:
         pass
-    exc('mkdir -p /root/dockercompute', container_id=container_id)
     cp(resources.DIR / 'docker.repo', ':/etc/yum.repos.d/docker.repo',
        container_id=container_id)
     if not version:
