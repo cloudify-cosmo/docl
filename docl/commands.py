@@ -18,6 +18,7 @@ import tempfile
 import time
 import threading
 
+import sh
 import argh
 import yaml
 from watchdog import events
@@ -111,6 +112,27 @@ def run(mount=False):
     docker_tag = configuration.installed_image_docker_tag
     volumes = _build_volumes() if mount else None
     _run_container(docker_tag=docker_tag, volume=volumes)
+
+
+@command
+def install_docker(version=None, container_id=None):
+    container_id = container_id or work.last_container_id
+    try:
+        exc('which docker', container_id)
+        return
+    except sh.ErrorReturnCode:
+        pass
+    exc('mkdir -p /root/dockercompute', container_id=container_id)
+    cp(resources.DIR / 'docker.repo', ':/etc/yum.repos.d/docker.repo',
+       container_id=container_id)
+    if not version:
+        try:
+            version = docker.version('-f', '{{.Client.Version}}').strip()
+        except sh.ErrorReturnCode as e:
+            version = e.stdout.strip()
+    install_docker_command = 'yum install -y -q docker-engine-{}'.format(
+        version)
+    exc(install_docker_command, container_id=container_id)
 
 
 @command
