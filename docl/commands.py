@@ -135,13 +135,17 @@ def install_docker(version=None, container_id=None):
 
 
 @command
-def clean():
+def clean(label=None):
     docker_tag1 = configuration.clean_image_docker_tag
     docker_tag2 = configuration.installed_image_docker_tag
-    containers = docker.ps(
+    ps_command = [
         '-aq',
         '--filter', 'ancestor={}'.format(docker_tag1),
-        '--filter', 'ancestor={}'.format(docker_tag2)).split('\n')
+        '--filter', 'ancestor={}'.format(docker_tag2)
+    ]
+    if label:
+        ps_command += ['--filter', 'label={}']
+    containers = docker.ps(ps_command).split('\n')
     containers = [c.strip() for c in containers if c.strip()]
     for container in containers:
         docker.rm('-f', container)
