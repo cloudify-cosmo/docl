@@ -144,7 +144,7 @@ def clean(label=None):
         '--filter', 'ancestor={}'.format(docker_tag2)
     ]
     if label:
-        ps_command += ['--filter', 'label={}']
+        ps_command += ['--filter', 'label={}'.format(label)]
     containers = docker.ps(ps_command).split('\n')
     containers = [c.strip() for c in containers if c.strip()]
     for container in containers:
