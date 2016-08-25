@@ -68,6 +68,17 @@ docl run
 If you want the container to start with directories mounted based on code residing on the host machine, supply the optional `--mount`
 flag.
 
+### `docl install-docker`
+
+To install docker within a running container (used by the integration tests), run
+
+```
+docl install-docker
+```
+
+You may pass the optional `--version` flag to install a specific version, otherwise, the version installed on the host machine
+will be installed on the container.
+
 ### `docl clean`
 
 To remove all containers started by `docl`, run
@@ -104,7 +115,23 @@ restart relevant services for you so you don't have to run `docl restart-service
 If you want the centos agent package to be built as well on changes to relevant packages that affect the agent package, supply the 
 optional `--rebuild-agent` flag to the `watch` command.
 
-## Notes
-To actually run blueprints with agents that are running on additional containers, the `dockercompute` plugin should be used.
-Currently it is located within the `cloudify-system-tests` repo.
-This process will likely be simplified in the near future.
+### `docl exec`
+To execute a command on a container, run
+
+```
+docl exec <COMMAND>
+```
+
+### `docl cp`
+To copy a file from or to a container, run 
+
+```
+docl cp SOURCE_PATH TARGE_PATH
+```
+If you wish to copy from the container, prefix the `SOURCE_PATH` with `:`, If you wish to copy to the container, prefix the `TARGET_PATH` with `:`.
+
+For example, to copy `/tmp/some_file` from the host machine to a container on `/root/configuration.txt`, run
+
+```
+docl cp /tmp/some_file :/root/configuration.txt
+```
