@@ -55,8 +55,6 @@ docl save-image
 
 To create an manager image from the currently installed manager. This step is required for mounting user code on manager containers.
 
-You can pass the optional `--prepare-agent` flag to the `save-image` command if you intend to make changes that apply to agent packages as well. This will prepare the manager image so that other commands can later easily build agent packages based on recent code.
-
 ### `docl run`
 
 To start a new manager container based on the last image created using `save-image` run

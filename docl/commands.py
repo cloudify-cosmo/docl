@@ -93,15 +93,14 @@ def bootstrap(inputs=None):
 
 
 @command
-def save_image(container_id=None, prepare_agent=False):
+def save_image(container_id=None):
     container_id = container_id or work.last_container_id
     docker_tag = configuration.installed_image_docker_tag
-    if prepare_agent:
-        docker('exec', container_id, 'mkdir', '-p',
-               constants.AGENT_TEMPLATE_DIR)
-        docker('exec', container_id, 'tar', 'xf',
-               configuration.agent_package_path, '--strip=1', '-C',
-               constants.AGENT_TEMPLATE_DIR)
+    docker('exec', container_id, 'mkdir', '-p',
+           constants.AGENT_TEMPLATE_DIR)
+    docker('exec', container_id, 'tar', 'xf',
+           configuration.agent_package_path, '--strip=1', '-C',
+           constants.AGENT_TEMPLATE_DIR)
     docker.stop(container_id)
     docker.commit(container_id, docker_tag)
     docker.rm('-f', container_id)
