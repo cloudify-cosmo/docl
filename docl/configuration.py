@@ -30,7 +30,7 @@ class Configuration(object):
              ssh_key_path,
              simple_manager_blueprint_path,
              clean_image_docker_tag,
-             installed_image_docker_tag,
+             manager_image_docker_tag,
              source_root,
              workdir,
              reset):
@@ -47,7 +47,7 @@ class Configuration(object):
             'ssh_key_path': str(ssh_key_path),
             'docker_host': docker_host,
             'clean_image_docker_tag': clean_image_docker_tag,
-            'installed_image_docker_tag': installed_image_docker_tag,
+            'manager_image_docker_tag': manager_image_docker_tag,
             'source_root': source_root,
             'workdir': str(workdir),
             'services': constants.SERVICES,
@@ -93,8 +93,8 @@ class Configuration(object):
         return self.conf.get('clean_image_docker_tag')
 
     @property
-    def installed_image_docker_tag(self):
-        return self.conf.get('installed_image_docker_tag')
+    def manager_image_docker_tag(self):
+        return self.conf.get('manager_image_docker_tag')
 
     @property
     def source_root(self):

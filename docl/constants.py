@@ -16,8 +16,8 @@
 INPUTS_YAML = 'inputs.yaml'
 DOCKER_HOST = 'fd://'
 SSH_KEY = '~/.ssh/.id_rsa'
-CLEAN_IMAGE_DOCKER_TAG = 'cloudify/centos-manager:7'
-INSTALLED_IMAGE_DOCKER_TAG = 'cloudify/centos-manager-installed:7'
+CLEAN_IMAGE_DOCKER_TAG = 'cloudify/centos:7'
+MANAGER_IMAGE_DOCKER_TAG = 'cloudify/centos-manager:7'
 SOURCE_ROOT = '~/dev/cloudify'
 HOSTNAME = 'cfy-manager'
 AGENT_PACKAGE_PATH = '/opt/manager/resources/packages/agents/centos-core-agent.tar.gz'  # noqa

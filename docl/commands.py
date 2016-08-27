@@ -45,7 +45,7 @@ def init(simple_manager_blueprint_path=None,
          docker_host=constants.DOCKER_HOST,
          ssh_key_path=constants.SSH_KEY,
          clean_image_docker_tag=constants.CLEAN_IMAGE_DOCKER_TAG,
-         installed_image_docker_tag=constants.INSTALLED_IMAGE_DOCKER_TAG,
+         manager_image_docker_tag=constants.MANAGER_IMAGE_DOCKER_TAG,
          source_root=constants.SOURCE_ROOT,
          workdir=None,
          reset=False):
@@ -65,7 +65,7 @@ def init(simple_manager_blueprint_path=None,
         simple_manager_blueprint_path=simple_manager_blueprint_path.abspath(),
         ssh_key_path=ssh_key_path.abspath(),
         clean_image_docker_tag=clean_image_docker_tag,
-        installed_image_docker_tag=installed_image_docker_tag,
+        manager_image_docker_tag=manager_image_docker_tag,
         source_root=source_root,
         workdir=workdir,
         reset=reset)
@@ -95,7 +95,7 @@ def bootstrap(inputs=None):
 @command
 def save_image(container_id=None):
     container_id = container_id or work.last_container_id
-    docker_tag = configuration.installed_image_docker_tag
+    docker_tag = configuration.manager_image_docker_tag
     docker('exec', container_id, 'mkdir', '-p',
            constants.AGENT_TEMPLATE_DIR)
     docker('exec', container_id, 'tar', 'xf',
@@ -108,7 +108,7 @@ def save_image(container_id=None):
 
 @command
 def run(mount=False):
-    docker_tag = configuration.installed_image_docker_tag
+    docker_tag = configuration.manager_image_docker_tag
     volumes = _build_volumes() if mount else None
     _run_container(docker_tag=docker_tag, volume=volumes)
 
@@ -136,7 +136,7 @@ def install_docker(version=None, container_id=None):
 @command
 def clean(label=None):
     docker_tag1 = configuration.clean_image_docker_tag
-    docker_tag2 = configuration.installed_image_docker_tag
+    docker_tag2 = configuration.manager_image_docker_tag
     ps_command = [
         '-aq',
         '--filter', 'ancestor={}'.format(docker_tag1),
@@ -151,12 +151,10 @@ def clean(label=None):
 
 
 @command
-def restart_services(container_id=None, rebuild_agent=False):
+def restart_services(container_id=None):
     container_id = container_id or work.last_container_id
     for service in configuration.services:
         _restart_service(container_id, service)
-    if rebuild_agent:
-        build_agent(container_id)
 
 
 @command
@@ -214,6 +212,17 @@ def watch(container_id=None, rebuild_agent=False, interval=2):
         scheduler.enter(interval, 1, restart_changed_services, ())
     restart_changed_services()
 
+    message = 'Filesystem watch started.'
+    if rebuild_agent:
+        message = ('{} Relevant services will be restarted and CentOS agent '
+                   'package (dockercompute) rebuilt on code changes.'
+                   .format(message))
+    else:
+        message = ('{} Relevant services will be restarted on code changes. '
+                   'Use --rebuild-agent to also rebuild Centos agent package '
+                   '(dockercompute) on code changes.'
+                   .format(message))
+    logger.info(message)
     try:
         scheduler.run()
     except KeyboardInterrupt:
