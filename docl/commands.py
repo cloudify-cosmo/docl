@@ -107,10 +107,12 @@ def save_image(container_id=None):
 
 
 @command
-def run(mount=False):
+@argh.arg('-l', '--label', action='append')
+def run(mount=False, label=None):
+    label = label or []
     docker_tag = configuration.manager_image_docker_tag
     volumes = _build_volumes() if mount else None
-    _run_container(docker_tag=docker_tag, volume=volumes)
+    _run_container(docker_tag=docker_tag, volume=volumes, label=label)
 
 
 @command
@@ -134,7 +136,9 @@ def install_docker(version=None, container_id=None):
 
 
 @command
+@argh.arg('-l', '--label', action='append')
 def clean(label=None):
+    label = label or []
     docker_tag1 = configuration.clean_image_docker_tag
     docker_tag2 = configuration.manager_image_docker_tag
     ps_command = [
@@ -142,8 +146,8 @@ def clean(label=None):
         '--filter', 'ancestor={}'.format(docker_tag1),
         '--filter', 'ancestor={}'.format(docker_tag2)
     ]
-    if label:
-        ps_command += ['--filter', 'label={}'.format(label)]
+    for l in label:
+        ps_command += ['--filter', 'label={}'.format(l)]
     containers = docker.ps(ps_command).split('\n')
     containers = [c.strip() for c in containers if c.strip()]
     for container in containers:
@@ -287,7 +291,7 @@ def _create_base_container():
     return container_id, container_ip
 
 
-def _run_container(docker_tag, volume=None):
+def _run_container(docker_tag, volume=None, label=None):
     volume = volume or []
     expose = configuration.expose
     publish = configuration.publish
@@ -297,6 +301,7 @@ def _run_container(docker_tag, volume=None):
                                ['--expose={}'.format(e) for e in expose] +
                                ['--publish={}'.format(p) for p in publish] +
                                ['--volume={}'.format(v) for v in volume] +
+                               ['--label={}'.format(l) for l in label] +
                                [docker_tag]).strip()
     container_ip = _extract_container_ip(container_id)
     work.save_last_container_id_and_ip(container_id=container_id,
