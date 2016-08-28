@@ -10,6 +10,8 @@ fix()
     sed -i -e "s|${pattern}|" "${path}"
 }
 
+echo "Patching services related files with container ip address ${ip}"
+
 fix /etc/sysconfig/cloudify-mgmtworker      "REST_HOST=.*|REST_HOST=${ip}"
 fix /etc/sysconfig/cloudify-mgmtworker      "FILE_SERVER_HOST=.*|FILE_SERVER_HOST=${ip}"
 fix /etc/sysconfig/cloudify-mgmtworker      "MANAGER_FILE_SERVER_URL="'"'"http://.*:53229"'"'"|MANAGER_FILE_SERVER_URL="'"'"http://${ip}:53229"'"'""

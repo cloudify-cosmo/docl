@@ -124,7 +124,7 @@ def run(mount=False, label=None):
                                                 label=label)
     _ssh_setup(container_id, container_ip)
     docker('exec', container_id,
-           constants.PY_SCRIPT_TARGET_PATH, container_ip,
+           constants.SH_SCRIPT_TARGET_PATH, container_ip,
            ' '.join(constants.ALL_IP_SERVICES))
 
 
@@ -331,6 +331,7 @@ def _extract_container_ip(container_id):
 
 
 def _ssh_setup(container_id, container_ip):
+    logger.info('Applying ssh configuration to manager container')
     ssh_keygen('-R', container_ip)
     docker('exec', container_id, 'mkdir', '-p', '/root/.ssh')
     ssh_public_key = ssh_keygen('-y', '-f', configuration.ssh_key_path).strip()
