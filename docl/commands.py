@@ -109,7 +109,6 @@ def save_image(container_id=None):
 @command
 @argh.arg('-l', '--label', action='append')
 def run(mount=False, label=None):
-    label = label or []
     docker_tag = configuration.manager_image_docker_tag
     volumes = _build_volumes() if mount else None
     _run_container(docker_tag=docker_tag, volume=volumes, label=label)
@@ -292,6 +291,7 @@ def _create_base_container():
 
 
 def _run_container(docker_tag, volume=None, label=None):
+    label = label or []
     volume = volume or []
     expose = configuration.expose
     publish = configuration.publish
