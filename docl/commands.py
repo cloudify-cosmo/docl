@@ -101,6 +101,14 @@ def save_image(container_id=None):
     docker('exec', container_id, 'tar', 'xf',
            configuration.agent_package_path, '--strip=1', '-C',
            constants.AGENT_TEMPLATE_DIR)
+    cp(source=resources.DIR / 'update-manager-ip.sh',
+       target=':{}'.format(constants.SH_SCRIPT_TARGET_PATH),
+       container_id=container_id)
+    cp(source=resources.DIR / 'update_provider_context.py',
+       target=':{}'.format(constants.PY_SCRIPT_TARGET_PATH),
+       container_id=container_id)
+    docker('exec', container_id, 'chmod', '+x',
+           constants.SH_SCRIPT_TARGET_PATH)
     docker.stop(container_id)
     docker.commit(container_id, docker_tag)
     docker.rm('-f', container_id)
@@ -115,6 +123,9 @@ def run(mount=False, label=None):
                                                 volume=volumes,
                                                 label=label)
     _ssh_setup(container_id, container_ip)
+    docker('exec', container_id,
+           constants.PY_SCRIPT_TARGET_PATH, container_ip,
+           ' '.join(constants.ALL_IP_SERVICES))
 
 
 @command

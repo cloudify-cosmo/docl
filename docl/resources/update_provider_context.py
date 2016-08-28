@@ -12,36 +12,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-############
 
-from setuptools import setup
+import sys
+import time
+
+from cloudify_rest_client import CloudifyClient
 
 
-setup(
-    name='docl',
-    version='0.16',
-    author='GigaSpaces',
-    author_email='cosmo-admin@gigaspaces.com',
-    packages=[
-        'docl',
-        'docl.resources',
-    ],
-    description='Cloudify Docker dev tools',
-    license='Apache License, Version 2.0',
-    zip_safe=False,
-    install_requires=[
-        'argh',
-        'sh',
-        'path.py',
-        'pyyaml',
-        'watchdog',
-        'proxy_tools',
-        'cloudify',
-    ],
-    include_package_data=True,
-    entry_points={
-        'console_scripts': [
-            'docl = docl.main:main',
-        ],
-    }
-)
+def main():
+    client = CloudifyClient()
+    for _ in range(200):
+        try:
+            context_obj = client.manager.get_context()
+            break
+        except:
+            time.sleep(0.1)
+    else:
+        raise
+    name = context_obj['name']
+    context = context_obj['context']
+    context['cloudify']['cloudify_agent']['broker_ip'] = sys.argv[1]
+    client.manager.update_context(name, context)
+
+if __name__ == '__main__':
+    main()
