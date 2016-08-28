@@ -111,7 +111,10 @@ def save_image(container_id=None):
 def run(mount=False, label=None):
     docker_tag = configuration.manager_image_docker_tag
     volumes = _build_volumes() if mount else None
-    _run_container(docker_tag=docker_tag, volume=volumes, label=label)
+    container_id, container_ip = _run_container(docker_tag=docker_tag,
+                                                volume=volumes,
+                                                label=label)
+    _ssh_setup(container_id, container_ip)
 
 
 @command
