@@ -25,6 +25,7 @@ AGENT_TEMPLATE_DIR = '/opt/agent-template'
 AGENT_STUB_SERVICE = 'agent-service'
 DOCL_HOME_ENV_VAR = 'DOCL_HOME'
 SH_SCRIPT_TARGET_PATH = '/root/update-manager-ip.sh'
+PATCH_POSTGRES_TARGET_PATH = '/root/patch-postgres.sh'
 PY_SCRIPT_TARGET_PATH = '/root/update_provider_context.py'
 
 EXPOSE = (22, 80, 443, 5671, 15672, 9200, 5432, 8086, 9999)

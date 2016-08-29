@@ -107,8 +107,14 @@ def save_image(container_id=None):
     cp(source=resources.DIR / 'update_provider_context.py',
        target=':{}'.format(constants.PY_SCRIPT_TARGET_PATH),
        container_id=container_id)
+    cp(source=resources.DIR / 'patch-postgres.sh',
+       target=':{}'.format(constants.PATCH_POSTGRES_TARGET_PATH),
+       container_id=container_id)
     docker('exec', container_id, 'chmod', '+x',
            constants.SH_SCRIPT_TARGET_PATH)
+    docker('exec', container_id, 'chmod', '+x',
+           constants.PATCH_POSTGRES_TARGET_PATH)
+    docker('exec', container_id, constants.PATCH_POSTGRES_TARGET_PATH)
     docker.stop(container_id)
     docker.commit(container_id, docker_tag)
     docker.rm('-f', container_id)
