@@ -75,19 +75,19 @@ def init(simple_manager_blueprint_path=None,
 
 
 @command
-def prepare(inputs_output=None):
+def prepare(inputs_output=None, details_path=None):
     inputs_output = inputs_output or constants.INPUTS_YAML
-    container_id, container_ip = _create_base_container()
+    container_id, container_ip = _create_base_container(details_path)
     _ssh_setup(container_id=container_id, container_ip=container_ip)
     _write_inputs(container_ip=container_ip, inputs_path=inputs_output)
 
 
 @command
 @argh.arg('-i', '--inputs', action='append')
-def bootstrap(inputs=None):
+def bootstrap(inputs=None, details_path=None):
     inputs = inputs or []
     with tempfile.NamedTemporaryFile() as f:
-        prepare(inputs_output=f.name)
+        prepare(inputs_output=f.name, details_path=details_path)
         inputs.insert(0, f.name)
         _cfy_bootstrap(inputs=inputs)
 
@@ -122,12 +122,13 @@ def save_image(container_id=None):
 
 @command
 @argh.arg('-l', '--label', action='append')
-def run(mount=False, label=None):
+def run(mount=False, label=None, details_path=None):
     docker_tag = configuration.manager_image_docker_tag
     volumes = _build_volumes() if mount else None
     container_id, container_ip = _run_container(docker_tag=docker_tag,
                                                 volume=volumes,
-                                                label=label)
+                                                label=label,
+                                                details_path=details_path)
     _ssh_setup(container_id, container_ip)
     docker('exec', container_id,
            constants.SH_SCRIPT_TARGET_PATH, container_ip,
@@ -302,15 +303,16 @@ def _build_volumes():
     return volumes.values()
 
 
-def _create_base_container():
+def _create_base_container(details_path):
     docker_tag = configuration.clean_image_docker_tag
     docker.build('-t', configuration.clean_image_docker_tag, resources.DIR)
-    container_id, container_ip = _run_container(docker_tag=docker_tag)
+    container_id, container_ip = _run_container(docker_tag=docker_tag,
+                                                details_path=details_path)
     docker('exec', container_id, 'systemctl', 'start', 'dbus')
     return container_id, container_ip
 
 
-def _run_container(docker_tag, volume=None, label=None):
+def _run_container(docker_tag, volume=None, label=None, details_path=None):
     label = label or []
     volume = volume or []
     expose = configuration.expose
@@ -326,6 +328,10 @@ def _run_container(docker_tag, volume=None, label=None):
     container_ip = _extract_container_ip(container_id)
     work.save_last_container_id_and_ip(container_id=container_id,
                                        container_ip=container_ip)
+    if details_path:
+        _write_container_details(container_id=container_id,
+                                 container_ip=container_ip,
+                                 details_path=details_path)
     return container_id, container_ip
 
 
@@ -370,4 +376,11 @@ def _write_inputs(container_ip, inputs_path):
         'private_ip': container_ip,
         'ssh_user': 'root',
         'ssh_key_filename': str(configuration.ssh_key_path),
+    }))
+
+
+def _write_container_details(container_id, container_ip, details_path):
+    path(details_path).write_text(yaml.safe_dump({
+        'id': container_id,
+        'ip': container_ip,
     }))
