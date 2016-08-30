@@ -19,7 +19,7 @@ from setuptools import setup
 
 setup(
     name='docl',
-    version='0.20',
+    version='0.21',
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
     packages=[

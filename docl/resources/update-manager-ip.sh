@@ -25,6 +25,7 @@ fix /opt/mgmtworker/work/broker_config.json ""'"'"broker_hostname"'"'": "'"'".*"
 fix /opt/manager/cloudify-rest.conf         "db_address: '.*'|db_address: '${ip}'"
 fix /opt/manager/cloudify-rest.conf         "amqp_address: '.*:5672/'|amqp_address: '${ip}:5672/'"
 fix /opt/cloudify-ui/backend/gsPresets.json ""'"'"host"'"'": "'"'".*"'"'"|"'"'"host"'"'": "'"'"${ip}"'"'""
+fix /etc/logstash/conf.d/logstash.conf      "host => "'"'".*"'"'"|host => "'"'"${ip}"'"'""
 
 for service in ${services};
 do
