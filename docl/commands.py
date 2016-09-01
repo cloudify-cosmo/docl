@@ -353,7 +353,11 @@ def _extract_container_ip(container_id):
 
 def _ssh_setup(container_id, container_ip):
     logger.info('Applying ssh configuration to manager container')
-    ssh_keygen('-R', container_ip)
+    try:
+        # Known hosts file may not exist
+        ssh_keygen('-R', container_ip)
+    except sh.ErrorReturnCode:
+        pass
     quiet_docker('exec', container_id, 'mkdir', '-p', '/root/.ssh')
     ssh_public_key = ssh_keygen('-y', '-f', configuration.ssh_key_path).strip()
     with tempfile.NamedTemporaryFile() as f:
