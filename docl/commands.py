@@ -96,9 +96,9 @@ def bootstrap(inputs=None, details_path=None):
 
 
 @command
-def save_image(container_id=None):
+def save_image(container_id=None, tag=None):
     container_id = container_id or work.last_container_id
-    docker_tag = configuration.manager_image_docker_tag
+    docker_tag = tag or configuration.manager_image_docker_tag
     logger.info('Preparing manager container before saving as docker image')
     quiet_docker('exec', container_id, 'mkdir', '-p',
                  constants.AGENT_TEMPLATE_DIR)
@@ -128,8 +128,8 @@ def save_image(container_id=None):
 
 @command
 @argh.arg('-l', '--label', action='append')
-def run(mount=False, label=None, details_path=None):
-    docker_tag = configuration.manager_image_docker_tag
+def run(mount=False, label=None, details_path=None, tag=None):
+    docker_tag = tag or configuration.manager_image_docker_tag
     volumes = _build_volumes() if mount else None
     container_id, container_ip = _run_container(docker_tag=docker_tag,
                                                 volume=volumes,
