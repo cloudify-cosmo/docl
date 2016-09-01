@@ -30,6 +30,7 @@ from docl import resources
 from docl.configuration import configuration
 from docl.work import work
 from docl.subprocess import docker
+from docl.subprocess import quiet_docker
 from docl.subprocess import ssh as _ssh
 from docl.subprocess import ssh_keygen
 from docl.subprocess import cfy
@@ -78,6 +79,8 @@ def init(simple_manager_blueprint_path=None,
 def prepare(inputs_output=None, details_path=None):
     inputs_output = inputs_output or constants.INPUTS_YAML
     container_id, container_ip = _create_base_container(details_path)
+    logger.info('Container {0} started on ip {1}'
+                .format(container_id, container_ip))
     _ssh_setup(container_id=container_id, container_ip=container_ip)
     _write_inputs(container_ip=container_ip, inputs_path=inputs_output)
 
@@ -96,11 +99,12 @@ def bootstrap(inputs=None, details_path=None):
 def save_image(container_id=None):
     container_id = container_id or work.last_container_id
     docker_tag = configuration.manager_image_docker_tag
-    docker('exec', container_id, 'mkdir', '-p',
-           constants.AGENT_TEMPLATE_DIR)
-    docker('exec', container_id, 'tar', 'xf',
-           configuration.agent_package_path, '--strip=1', '-C',
-           constants.AGENT_TEMPLATE_DIR)
+    logger.info('Preparing manager container before saving as docker image')
+    quiet_docker('exec', container_id, 'mkdir', '-p',
+                 constants.AGENT_TEMPLATE_DIR)
+    quiet_docker('exec', container_id, 'tar', 'xf',
+                 configuration.agent_package_path, '--strip=1', '-C',
+                 constants.AGENT_TEMPLATE_DIR)
     cp(source=resources.DIR / 'update-manager-ip.sh',
        target=':{}'.format(constants.SH_SCRIPT_TARGET_PATH),
        container_id=container_id)
@@ -110,14 +114,16 @@ def save_image(container_id=None):
     cp(source=resources.DIR / 'patch-postgres.sh',
        target=':{}'.format(constants.PATCH_POSTGRES_TARGET_PATH),
        container_id=container_id)
-    docker('exec', container_id, 'chmod', '+x',
-           constants.SH_SCRIPT_TARGET_PATH)
-    docker('exec', container_id, 'chmod', '+x',
-           constants.PATCH_POSTGRES_TARGET_PATH)
+    quiet_docker('exec', container_id, 'chmod', '+x',
+                 constants.SH_SCRIPT_TARGET_PATH)
+    quiet_docker('exec', container_id, 'chmod', '+x',
+                 constants.PATCH_POSTGRES_TARGET_PATH)
     docker('exec', container_id, constants.PATCH_POSTGRES_TARGET_PATH)
-    docker.stop(container_id)
-    docker.commit(container_id, docker_tag)
-    docker.rm('-f', container_id)
+    logger.info('Saving manager container to image {0}'.format(docker_tag))
+    quiet_docker.stop(container_id)
+    quiet_docker.commit(container_id, docker_tag)
+    logger.info("Removing container. Run 'docl run' to start it again")
+    quiet_docker.rm('-f', container_id)
 
 
 @command
@@ -139,7 +145,8 @@ def run(mount=False, label=None, details_path=None):
 def install_docker(version=None, container_id=None):
     container_id = container_id or work.last_container_id
     try:
-        exc('which docker', container_id)
+        quiet_docker('exec', container_id, *'which docker'.split(' '))
+        logger.info('Docker already installed on container. Doing nothing')
         return
     except sh.ErrorReturnCode:
         pass
@@ -147,12 +154,12 @@ def install_docker(version=None, container_id=None):
        container_id=container_id)
     if not version:
         try:
-            version = docker.version('-f', '{{.Client.Version}}').strip()
+            version = quiet_docker.version('-f', '{{.Client.Version}}').strip()
         except sh.ErrorReturnCode as e:
             version = e.stdout.strip()
     install_docker_command = 'yum install -y -q docker-engine-{}'.format(
         version)
-    exc(install_docker_command, container_id=container_id)
+    docker('exec', container_id, *install_docker_command.split(' '))
 
 
 @command
@@ -168,8 +175,9 @@ def clean(label=None):
     ]
     for l in label:
         ps_command += ['--filter', 'label={}'.format(l)]
-    containers = docker.ps(ps_command).split('\n')
+    containers = quiet_docker.ps(ps_command).split('\n')
     containers = [c.strip() for c in containers if c.strip()]
+    logger.info('Removing containers')
     for container in containers:
         docker.rm('-f', container)
 
@@ -194,10 +202,10 @@ def ssh(container_id=None):
 def build_agent(container_id=None):
     logger.info('Rebuilding agent package')
     container_id = container_id or work.last_container_id
-    docker('exec', container_id, 'tar', 'czf',
-           configuration.agent_package_path, '-C',
-           path(constants.AGENT_TEMPLATE_DIR).dirname(),
-           path(constants.AGENT_TEMPLATE_DIR).basename())
+    quiet_docker('exec', container_id, 'tar', 'czf',
+                 configuration.agent_package_path, '-C',
+                 path(constants.AGENT_TEMPLATE_DIR).dirname(),
+                 path(constants.AGENT_TEMPLATE_DIR).basename())
 
 
 @command
@@ -270,12 +278,12 @@ def cp(source, target, container_id=None):
     else:
         raise argh.CommandError('Either source or target should be prefixed '
                                 'with : to denote the container.')
-    docker.cp(source, target)
+    quiet_docker.cp(source, target)
 
 
 def _restart_service(container_id, service):
     logger.info('Restarting {}'.format(service))
-    docker('exec', container_id, 'systemctl', 'restart', service)
+    quiet_docker('exec', container_id, 'systemctl', 'restart', service)
 
 
 def _build_volumes():
@@ -308,7 +316,7 @@ def _create_base_container(details_path):
     docker.build('-t', configuration.clean_image_docker_tag, resources.DIR)
     container_id, container_ip = _run_container(docker_tag=docker_tag,
                                                 details_path=details_path)
-    docker('exec', container_id, 'systemctl', 'start', 'dbus')
+    quiet_docker('exec', container_id, 'systemctl', 'start', 'dbus')
     return container_id, container_ip
 
 
@@ -318,13 +326,14 @@ def _run_container(docker_tag, volume=None, label=None, details_path=None):
     expose = configuration.expose
     publish = configuration.publish
     hostname = configuration.container_hostname
-    container_id = docker.run(*['--privileged', '--detach'] +
-                               ['--hostname={}'.format(hostname)] +
-                               ['--expose={}'.format(e) for e in expose] +
-                               ['--publish={}'.format(p) for p in publish] +
-                               ['--volume={}'.format(v) for v in volume] +
-                               ['--label={}'.format(l) for l in label] +
-                               [docker_tag]).strip()
+    container_id = quiet_docker.run(
+        *['--privileged', '--detach'] +
+         ['--hostname={}'.format(hostname)] +
+         ['--expose={}'.format(e) for e in expose] +
+         ['--publish={}'.format(p) for p in publish] +
+         ['--volume={}'.format(v) for v in volume] +
+         ['--label={}'.format(l) for l in label] +
+         [docker_tag]).strip()
     container_ip = _extract_container_ip(container_id)
     work.save_last_container_id_and_ip(container_id=container_id,
                                        container_ip=container_ip)
@@ -336,7 +345,7 @@ def _run_container(docker_tag, volume=None, label=None, details_path=None):
 
 
 def _extract_container_ip(container_id):
-    return docker.inspect(
+    return quiet_docker.inspect(
         '--format={{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}',
         container_id,
     ).strip()
@@ -345,12 +354,13 @@ def _extract_container_ip(container_id):
 def _ssh_setup(container_id, container_ip):
     logger.info('Applying ssh configuration to manager container')
     ssh_keygen('-R', container_ip)
-    docker('exec', container_id, 'mkdir', '-p', '/root/.ssh')
+    quiet_docker('exec', container_id, 'mkdir', '-p', '/root/.ssh')
     ssh_public_key = ssh_keygen('-y', '-f', configuration.ssh_key_path).strip()
     with tempfile.NamedTemporaryFile() as f:
         f.write(ssh_public_key)
         f.flush()
-        docker.cp(f.name, '{}:/root/.ssh/authorized_keys'.format(container_id))
+        quiet_docker.cp(f.name, '{}:/root/.ssh/authorized_keys'.format(
+            container_id))
 
 
 def _cfy_bootstrap(inputs):

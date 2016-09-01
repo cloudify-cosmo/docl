@@ -17,6 +17,7 @@ from __future__ import absolute_import
 
 
 import subprocess
+import functools
 import sys
 
 import proxy_tools
@@ -31,12 +32,16 @@ def bake(cmd):
                     _tee=True)
 
 
-def docker_proxy():
-    return bake(sh.docker).bake('-H', configuration.docker_host)
+def docker_proxy(quiet=False):
+    result = sh.docker.bake('-H', configuration.docker_host)
+    if not quiet:
+        result = bake(result)
+    return result
 
 
 docker = proxy_tools.Proxy(docker_proxy)
-ssh_keygen = bake(sh.Command('ssh-keygen'))
+quiet_docker = proxy_tools.Proxy(functools.partial(docker_proxy, quiet=True))
+ssh_keygen = sh.Command('ssh-keygen')
 cfy = bake(sh.cfy)
 
 
