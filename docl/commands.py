@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import sched
+import shlex
 import tempfile
 import time
 import threading
@@ -27,6 +28,7 @@ from path import path
 
 from docl import constants
 from docl import resources
+from docl import resources_server
 from docl.configuration import configuration
 from docl.work import work
 from docl.subprocess import docker
@@ -76,9 +78,13 @@ def init(simple_manager_blueprint_path=None,
 
 
 @command
-def prepare(inputs_output=None, details_path=None):
+@argh.arg('-l', '--label', action='append')
+def prepare(inputs_output=None, label=None, details_path=None, tag=None):
     inputs_output = inputs_output or constants.INPUTS_YAML
-    container_id, container_ip = _create_base_container(details_path)
+    container_id, container_ip = _create_base_container(
+        label=label,
+        details_path=details_path,
+        tag=tag)
     logger.info('Container {0} started on ip {1}'
                 .format(container_id, container_ip))
     _ssh_setup(container_id=container_id, container_ip=container_ip)
@@ -87,12 +93,34 @@ def prepare(inputs_output=None, details_path=None):
 
 @command
 @argh.arg('-i', '--inputs', action='append')
-def bootstrap(inputs=None, details_path=None):
+@argh.arg('-l', '--label', action='append')
+def bootstrap(inputs=None, label=None, details_path=None, tag=None,
+              container_id=None,
+              serve_resources_tar=False,
+              serve_resources_tar_invalidate_cache=False,
+              serve_resources_tar_no_progress=False):
     inputs = inputs or []
     with tempfile.NamedTemporaryFile() as f:
-        prepare(inputs_output=f.name, details_path=details_path)
-        inputs.insert(0, f.name)
-        _cfy_bootstrap(inputs=inputs)
+        if not container_id:
+            prepare(inputs_output=f.name,
+                    label=label,
+                    details_path=details_path,
+                    tag=tag)
+            inputs.insert(0, f.name)
+        if serve_resources_tar:
+            with resources_server.with_server(
+                    invalidate_cache=serve_resources_tar_invalidate_cache,
+                    no_progress=serve_resources_tar_no_progress) as url:
+                inputs.append('manager_resources_package={}'.format(url))
+                _cfy_bootstrap(inputs=inputs)
+        else:
+            _cfy_bootstrap(inputs=inputs)
+
+
+@command
+def restart_container(container_id=None):
+    container_id = container_id or work.last_container_id
+    quiet_docker.restart(container_id, time=0)
 
 
 @command
@@ -119,11 +147,18 @@ def save_image(container_id=None, tag=None):
     quiet_docker('exec', container_id, 'chmod', '+x',
                  constants.PATCH_POSTGRES_TARGET_PATH)
     docker('exec', container_id, constants.PATCH_POSTGRES_TARGET_PATH)
-    logger.info('Saving manager container to image {0}'.format(docker_tag))
+    logger.info('Saving manager container to image {}'.format(docker_tag))
     quiet_docker.stop(container_id)
     quiet_docker.commit(container_id, docker_tag)
     logger.info("Removing container. Run 'docl run' to start it again")
     quiet_docker.rm('-f', container_id)
+
+
+@command
+@argh.arg('-t', '--tag', required=True)
+def remove_image(tag=None):
+    logger.info('Removing image {}'.format(tag))
+    quiet_docker.rmi(tag)
 
 
 @command
@@ -265,7 +300,7 @@ def watch(container_id=None, rebuild_agent=False, interval=2):
 @argh.named('exec')
 def exc(command, container_id=None):
     container_id = container_id or work.last_container_id
-    docker('exec', container_id, *command.split(' '))
+    docker('exec', container_id, *shlex.split(command))
 
 
 @command
@@ -279,6 +314,17 @@ def cp(source, target, container_id=None):
         raise argh.CommandError('Either source or target should be prefixed '
                                 'with : to denote the container.')
     quiet_docker.cp(source, target)
+
+
+@command
+def serve_resources_tar(invalidate_cache=False, no_progress=False):
+    with resources_server.with_server(invalidate_cache=invalidate_cache,
+                                      no_progress=no_progress):
+        while True:
+            try:
+                time.sleep(10)
+            except KeyboardInterrupt:
+                break
 
 
 def _restart_service(container_id, service):
@@ -311,11 +357,12 @@ def _build_volumes():
     return volumes.values()
 
 
-def _create_base_container(details_path):
-    docker_tag = configuration.clean_image_docker_tag
+def _create_base_container(label, details_path, tag):
+    docker_tag = tag or configuration.clean_image_docker_tag
     docker.build('-t', configuration.clean_image_docker_tag, resources.DIR)
     container_id, container_ip = _run_container(docker_tag=docker_tag,
-                                                details_path=details_path)
+                                                details_path=details_path,
+                                                label=label)
     quiet_docker('exec', container_id, 'systemctl', 'start', 'dbus')
     return container_id, container_ip
 
@@ -390,6 +437,7 @@ def _write_inputs(container_ip, inputs_path):
         'private_ip': container_ip,
         'ssh_user': 'root',
         'ssh_key_filename': str(configuration.ssh_key_path),
+        'dsl_resources': [],
     }))
 
 

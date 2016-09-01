@@ -35,6 +35,10 @@ class Work(object):
     def last_container_ip(self):
         return (self.dir / 'last_container_ip').text()
 
+    @property
+    def cached_resources_tar_path(self):
+        return self.dir / 'resources.tar.gz'
+
     def save_last_container_id_and_ip(self, container_id, container_ip):
         (self.dir / 'last_container_id').write_text(container_id)
         (self.dir / 'last_container_ip').write_text(container_ip)
