@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import sched
 import shlex
 import tempfile
 import time
 import threading
+import os
 
 import sh
 import argh
@@ -25,6 +27,8 @@ import yaml
 from watchdog import events
 from watchdog import observers
 from path import path
+
+from cloudify_cli.env import profile
 
 from docl import constants
 from docl import resources
@@ -133,17 +137,12 @@ def save_image(container_id=None, tag=None):
     quiet_docker('exec', container_id, 'tar', 'xf',
                  configuration.agent_package_path, '--strip=1', '-C',
                  constants.AGENT_TEMPLATE_DIR)
-    cp(source=resources.DIR / 'update-manager-ip.sh',
-       target=':{}'.format(constants.SH_SCRIPT_TARGET_PATH),
-       container_id=container_id)
-    cp(source=resources.DIR / 'update_provider_context.py',
+    cp(source=resources.DIR / 'update_running_system.py',
        target=':{}'.format(constants.PY_SCRIPT_TARGET_PATH),
        container_id=container_id)
     cp(source=resources.DIR / 'patch-postgres.sh',
        target=':{}'.format(constants.PATCH_POSTGRES_TARGET_PATH),
        container_id=container_id)
-    quiet_docker('exec', container_id, 'chmod', '+x',
-                 constants.SH_SCRIPT_TARGET_PATH)
     quiet_docker('exec', container_id, 'chmod', '+x',
                  constants.PATCH_POSTGRES_TARGET_PATH)
     docker('exec', container_id, constants.PATCH_POSTGRES_TARGET_PATH)
@@ -171,9 +170,25 @@ def run(mount=False, label=None, details_path=None, tag=None):
                                                 label=label,
                                                 details_path=details_path)
     _ssh_setup(container_id, container_ip)
+    with tempfile.NamedTemporaryFile() as f:
+        json.dump({
+            'ip': container_ip,
+            'services': constants.ALL_IP_SERVICES,
+            'rest_username': os.environ.get('CLOUDIFY_USERNAME'),
+            'rest_password': os.environ.get('CLOUDIFY_PASSWORD'),
+            'rest_port': profile.rest_port,
+            'rest_protocol': profile.rest_protocol,
+            'trust_all': os.environ.get('CLOUDIFY_SSL_TRUST_ALL', False)
+
+        }, f)
+        f.flush()
+        cp(source=f.name,
+           target=':{}'.format(constants.DATA_JSON_TARGET_PATH),
+           container_id=container_id)
     docker('exec', container_id,
-           constants.SH_SCRIPT_TARGET_PATH, container_ip,
-           ' '.join(constants.ALL_IP_SERVICES))
+           '/opt/mgmtworker/env/bin/python', '-u',
+           constants.PY_SCRIPT_TARGET_PATH,
+           constants.DATA_JSON_TARGET_PATH)
 
 
 @command
