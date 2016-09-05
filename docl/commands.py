@@ -178,8 +178,6 @@ def run(mount=False, label=None, details_path=None, tag=None):
             'rest_password': os.environ.get('CLOUDIFY_PASSWORD'),
             'rest_port': profile.rest_port,
             'rest_protocol': profile.rest_protocol,
-            'trust_all': os.environ.get('CLOUDIFY_SSL_TRUST_ALL', False)
-
         }, f)
         f.flush()
         cp(source=f.name,

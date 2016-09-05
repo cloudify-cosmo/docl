@@ -100,7 +100,6 @@ def update_provider_context(data):
     ip = data['ip']
     username = data['rest_username']
     password = data['rest_password']
-    trust_all = data['trust_all']
     rest_port = data['rest_port']
     rest_protocol = data['rest_protocol']
     print 'Updating provider context with broker_ip: {}'.format(ip)
@@ -109,8 +108,7 @@ def update_provider_context(data):
         'REST_PORT': str(rest_port),
         'REST_PROTOCOL': rest_protocol,
         'SECURITY_ENABLED': str(password is not None),
-        'VERIFY_REST_CERTIFICATE': str(not trust_all),
-        'LOCAL_REST_CERT_FILE': '',
+        'VERIFY_REST_CERTIFICATE': '',
     })
     ctx = CloudifyContext({
         'rest_username': username,
