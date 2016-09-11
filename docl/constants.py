@@ -24,12 +24,13 @@ AGENT_PACKAGE_PATH = '/opt/manager/resources/packages/agents/centos-core-agent.t
 AGENT_TEMPLATE_DIR = '/opt/agent-template'
 AGENT_STUB_SERVICE = 'agent-service'
 DOCL_HOME_ENV_VAR = 'DOCL_HOME'
-PATCH_POSTGRES_TARGET_PATH = '/root/patch-postgres.sh'
+PREPARE_SAVE_IMAGE_TARGET_PATH = '/root/prepare_save_image.py'
 PY_SCRIPT_TARGET_PATH = '/root/update_running_system.py'
 DATA_JSON_TARGET_PATH = '/root/data.json'
 BUFFER_SIZE = 1024 * 64
 MANAGER_IMAGE_URL = 'http://repository.cloudifysource.org/org/cloudify3/tests/manager.tar.gz'  # noqa
 MANAGER_IMAGE_COMMIT_SHA_URL = 'http://repository.cloudifysource.org/org/cloudify3/tests/image.sha1'  # noqa
+PYDEVD_EGG_URL = 'http://repository.cloudifysource.org/org/cloudify3/components/pycharm-debug.egg'  # noqa
 
 EXPOSE = (22, 80, 443, 5671, 5672, 15672, 9200, 5432, 8086, 9999)
 PUBLISH = ()

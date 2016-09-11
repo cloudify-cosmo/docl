@@ -143,12 +143,15 @@ def save_image(container_id=None, tag=None, output_file=None):
     cp(source=resources.DIR / 'update_running_system.py',
        target=':{}'.format(constants.PY_SCRIPT_TARGET_PATH),
        container_id=container_id)
-    cp(source=resources.DIR / 'patch-postgres.sh',
-       target=':{}'.format(constants.PATCH_POSTGRES_TARGET_PATH),
+    cp(source=resources.DIR / 'prepare_save_image.py',
+       target=':{}'.format(constants.PREPARE_SAVE_IMAGE_TARGET_PATH),
        container_id=container_id)
     quiet_docker('exec', container_id, 'chmod', '+x',
-                 constants.PATCH_POSTGRES_TARGET_PATH)
-    docker('exec', container_id, constants.PATCH_POSTGRES_TARGET_PATH)
+                 constants.PREPARE_SAVE_IMAGE_TARGET_PATH)
+    docker('exec', container_id, 'python',
+           constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
+           constants.DATA_JSON_TARGET_PATH,
+           configuration.pydevd_egg_url)
     logger.info('Saving manager container to image {}'.format(docker_tag))
     quiet_docker.stop(container_id)
     quiet_docker.commit(container_id, docker_tag)
@@ -216,6 +219,8 @@ def run(mount=False, label=None, details_path=None, tag=None):
             'rest_password': os.environ.get('CLOUDIFY_PASSWORD'),
             'rest_port': profile.rest_port,
             'rest_protocol': profile.rest_protocol,
+            'is_debug_on': bool(os.environ.get('DEBUG_MODE')),
+            'host_ip': resources_server.get_host()
         }, f)
         f.flush()
         cp(source=f.name,
