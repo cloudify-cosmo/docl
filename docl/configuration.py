@@ -59,6 +59,9 @@ class Configuration(object):
             'env_packages': constants.ENV_PACKAGES,
             'resources': constants.RESOURCES,
             'agent_package_path': constants.AGENT_PACKAGE_PATH,
+            'manager_image_url': constants.MANAGER_IMAGE_URL,
+            'manager_image_commit_sha_url':
+                constants.MANAGER_IMAGE_COMMIT_SHA_URL
         }, default_flow_style=False))
 
     @property
@@ -139,4 +142,12 @@ class Configuration(object):
     @property
     def workdir(self):
         return path(self.conf['workdir'])
+
+    @property
+    def manager_image_url(self):
+        return self.conf.get('manager_image_url')
+
+    @property
+    def manager_image_commit_sha_url(self):
+        return self.conf.get('manager_image_commit_sha_url')
 configuration = Configuration()
