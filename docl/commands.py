@@ -157,7 +157,7 @@ def save_image(container_id=None, tag=None, output_file=None):
     if output_file:
         logger.info('Saving manager image to {}. This may take a while'
                     .format(output_file))
-        gzip(quiet_docker.save(configuration.manager_image_docker_tag,
+        gzip(quiet_docker.save(docker_tag,
                                _piped=True,
                                _tty_out=False,
                                _out_bufsize=constants.BUFFER_SIZE),
