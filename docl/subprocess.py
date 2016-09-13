@@ -44,6 +44,7 @@ quiet_docker = proxy_tools.Proxy(functools.partial(docker_proxy, quiet=True))
 ssh_keygen = sh.Command('ssh-keygen')
 cfy = bake(sh.cfy)
 serve = sh.serve
+gzip = sh.gzip.bake(_tty_out=False)
 
 
 def ssh(ip, keypath):

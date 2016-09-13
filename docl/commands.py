@@ -24,6 +24,7 @@ import os
 import sh
 import argh
 import yaml
+import requests
 from watchdog import events
 from watchdog import observers
 from path import path
@@ -33,6 +34,7 @@ from cloudify_cli.env import profile
 from docl import constants
 from docl import resources
 from docl import resources_server
+from docl import files
 from docl.configuration import configuration
 from docl.work import work
 from docl.subprocess import docker
@@ -40,6 +42,7 @@ from docl.subprocess import quiet_docker
 from docl.subprocess import ssh as _ssh
 from docl.subprocess import ssh_keygen
 from docl.subprocess import cfy
+from docl.subprocess import gzip
 from docl.logs import logger
 
 app = argh.EntryPoint('docl')
@@ -128,7 +131,7 @@ def restart_container(container_id=None):
 
 
 @command
-def save_image(container_id=None, tag=None):
+def save_image(container_id=None, tag=None, output_file=None):
     container_id = container_id or work.last_container_id
     docker_tag = tag or configuration.manager_image_docker_tag
     logger.info('Preparing manager container before saving as docker image')
@@ -151,6 +154,41 @@ def save_image(container_id=None, tag=None):
     quiet_docker.commit(container_id, docker_tag)
     logger.info("Removing container. Run 'docl run' to start it again")
     quiet_docker.rm('-f', container_id)
+    if output_file:
+        logger.info('Saving manager image to {}. This may take a while'
+                    .format(output_file))
+        gzip(quiet_docker.save(configuration.manager_image_docker_tag,
+                               _piped=True,
+                               _tty_out=False,
+                               _out_bufsize=constants.BUFFER_SIZE),
+             _in_bufsize=constants.BUFFER_SIZE,
+             _out=output_file)
+
+
+@command
+def pull_image(no_progress=False):
+    online_sha1 = requests.get(
+        configuration.manager_image_commit_sha_url).text.strip()
+    local_sha1 = work.last_pulled_image_commit_sha1
+    if online_sha1 == local_sha1:
+        logger.info('Current image is the latest image. It is based on the '
+                    'following commit in the manager blueprints repo: {}'
+                    .format(local_sha1))
+        return
+    logger.info('Download manager image from {} to {}'
+                .format(configuration.manager_image_url,
+                        work.pulled_image_path))
+    if os.path.exists(work.pulled_image_path):
+        os.remove(work.pulled_image_path)
+    files.download(url=configuration.manager_image_url,
+                   output_path=work.pulled_image_path,
+                   no_progress=no_progress)
+    logger.info('Loading image into docker')
+    docker.load(gzip('-dc', work.pulled_image_path,
+                     _piped=True,
+                     _out_bufsize=constants.BUFFER_SIZE),
+                _in_bufsize=constants.BUFFER_SIZE)
+    work.last_pulled_image_commit_sha1 = online_sha1
 
 
 @command

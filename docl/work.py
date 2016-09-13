@@ -39,6 +39,22 @@ class Work(object):
     def cached_resources_tar_path(self):
         return self.dir / 'resources.tar.gz'
 
+    @property
+    def pulled_image_path(self):
+        return self.dir / 'manager-image.tar.gz'
+
+    @property
+    def last_pulled_image_commit_sha1(self):
+        file_path = self.dir / 'pulled_image.sha1'
+        if not file_path.exists():
+            return None
+        return file_path.text().strip()
+
+    @last_pulled_image_commit_sha1.setter
+    def last_pulled_image_commit_sha1(self, value):
+        file_path = self.dir / 'pulled_image.sha1'
+        file_path.write_text(value)
+
     def save_last_container_id_and_ip(self, container_id, container_ip):
         (self.dir / 'last_container_id').write_text(container_id)
         (self.dir / 'last_container_ip').write_text(container_ip)

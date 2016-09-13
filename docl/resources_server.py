@@ -15,14 +15,10 @@
 
 from contextlib import contextmanager
 
-import requests
 import sh
 import yaml
 
-from cloudify_cli.utils import generate_progress_handler
-from cloudify_rest_client import bytes_stream_utils
-from cloudify_rest_client import client
-
+from docl import files
 from docl.configuration import configuration
 from docl.work import work
 from docl.logs import logger
@@ -70,15 +66,9 @@ def _download_resources_tar(no_progress):
     resources_url = _get_resources_url()
     logger.info('Downloading resources tar from {}. This might take a '
                 'while'.format(resources_url))
-    response = requests.get(resources_url, stream=True)
-    streamed_response = client.StreamedResponse(response)
-    progress_handler = None
-    if not no_progress:
-        progress_handler = generate_progress_handler(resources_local_path)
-    bytes_stream_utils.write_response_stream_to_file(
-        streamed_response=streamed_response,
-        output_file=resources_local_path,
-        progress_callback=progress_handler)
+    files.download(url=resources_url,
+                   output_path=resources_local_path,
+                   no_progress=no_progress)
 
 
 def _get_resources_url():
