@@ -131,15 +131,19 @@ def restart_container(container_id=None):
 
 
 @command
-def save_image(container_id=None, tag=None, output_file=None):
+def save_image(container_id=None,
+               tag=None,
+               output_file=None,
+               skip_agent_prepare=False):
     container_id = container_id or work.last_container_id
     docker_tag = tag or configuration.manager_image_docker_tag
     logger.info('Preparing manager container before saving as docker image')
-    quiet_docker('exec', container_id, 'mkdir', '-p',
-                 constants.AGENT_TEMPLATE_DIR)
-    quiet_docker('exec', container_id, 'tar', 'xf',
-                 configuration.agent_package_path, '--strip=1', '-C',
-                 constants.AGENT_TEMPLATE_DIR)
+    if not skip_agent_prepare:
+        quiet_docker('exec', container_id, 'mkdir', '-p',
+                     constants.AGENT_TEMPLATE_DIR)
+        quiet_docker('exec', container_id, 'tar', 'xf',
+                     configuration.agent_package_path, '--strip=1', '-C',
+                     constants.AGENT_TEMPLATE_DIR)
     cp(source=resources.DIR / 'update_running_system.py',
        target=':{}'.format(constants.PY_SCRIPT_TARGET_PATH),
        container_id=container_id)
