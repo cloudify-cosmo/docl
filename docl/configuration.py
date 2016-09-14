@@ -61,7 +61,8 @@ class Configuration(object):
             'agent_package_path': constants.AGENT_PACKAGE_PATH,
             'manager_image_url': constants.MANAGER_IMAGE_URL,
             'manager_image_commit_sha_url':
-                constants.MANAGER_IMAGE_COMMIT_SHA_URL
+                constants.MANAGER_IMAGE_COMMIT_SHA_URL,
+            'pydevd_egg_url': constants.PYDEVD_EGG_URL,
         }, default_flow_style=False))
 
     @property
@@ -150,4 +151,9 @@ class Configuration(object):
     @property
     def manager_image_commit_sha_url(self):
         return self.conf.get('manager_image_commit_sha_url')
+
+    @property
+    def pydevd_egg_url(self):
+        return self.conf.get('pydevd_egg_url')
+
 configuration = Configuration()

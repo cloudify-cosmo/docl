@@ -45,12 +45,17 @@ def start(invalidate_cache=False, no_progress=False):
     return _serve()
 
 
-def _serve():
+def get_host():
     host = configuration.docker_host
     if '://' in host:
         host = host.split('://')[1]
     if ':' in host:
         host = host.split(':')[0]
+    return host
+
+
+def _serve():
+    host = get_host()
     port = 9797
     local_resources_url = 'http://{}:{}/{}'.format(
         host, port, work.cached_resources_tar_path.basename())
