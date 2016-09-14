@@ -1,8 +1,8 @@
 # docl
 
 ## Prerequisites
-* Docker should be installed and running.
-* Current user should be added to the `docker` group (`sudo` is not used in `docl` when running  `docker`)
+* Docker should be installed and running. It should be started with root privileges because containers are started with the `--privileged` flag.
+* Docker should be accesible on tcp (as opposed to the default unix socket).
 
 ## Installation
 `docl` can be installed by running 
@@ -18,8 +18,7 @@ Note that `cloudify` CLI is a dependency of `docl`.
 Run `docl init` and supply the different configuration options based on your setup.
 * `--simple-manager-blueprint-path` is mandatory and will be used when running `docl bootstrap`
 * `--ssh-key-path` should point to a private key that will have access to created containers.
-* `--docker-host` should point to the docker endpoint. By default it will use `fd://` which means it will use a local socket. To use the
-  `dockercompute` plugin later to install docker based agents, you should consider starting docker with a tcp based host.
+* `--docker-host` should point to the docker endpoint.
 * `--source-root` should point to the root directory in which all cloudify related projects are cloned. This is used for mounting code
   from the host machine to the relevant manager directories.
 
@@ -34,6 +33,8 @@ To bootstrap a manager a manager using the simple manager blueprint suppplied du
 ```
 docl bootstrap
 ```
+
+`bootstrap` accepts a `--serve-resources-tar` flag that will download the resources tar locally and will act as a local file server during the bootstrap process. The resources tar will not be re-downloaded if it already exists unless the invalidate cache flag is supplied as well.
 
 ### `docl prepare`
 If you want to bootstrap on your own, create an empty container (CentOS 7 with systemd and ssh enabled suitable for bootstrap), by 
@@ -54,6 +55,16 @@ docl save-image
 ```
 
 To create an manager image from the currently installed manager. This step is required for mounting user code on manager containers.
+
+
+### `docl pull-image`
+
+To pull the latest built image from S3 (instead of running `bootstrap` and then `save-image` to create your own image), run
+
+```
+docl pull-image
+```
+
 
 ### `docl run`
 
