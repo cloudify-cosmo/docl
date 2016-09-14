@@ -41,6 +41,7 @@ from docl.subprocess import docker
 from docl.subprocess import quiet_docker
 from docl.subprocess import ssh as _ssh
 from docl.subprocess import ssh_keygen
+from docl.subprocess import ssh_keyscan
 from docl.subprocess import cfy
 from docl.subprocess import gzip
 from docl.logs import logger
@@ -461,8 +462,21 @@ def _extract_container_ip(container_id):
 def _ssh_setup(container_id, container_ip):
     logger.info('Applying ssh configuration to manager container')
     try:
+        known_hosts = path('~/.ssh/known_hosts').expanduser()
         # Known hosts file may not exist
         ssh_keygen('-R', container_ip)
+        fingerprint = None
+        while not fingerprint:
+            fingerprint = ssh_keyscan(
+                container_ip).stdout.split('\n')[0].strip()
+            time.sleep(0.01)
+        if fingerprint and known_hosts.exists():
+            current = known_hosts.text()
+            prefix = ''
+            if not current.endswith('\n'):
+                prefix = '\n'
+            known_hosts.write_text(
+                '{}{}\n'.format(prefix, fingerprint), append=True)
     except sh.ErrorReturnCode:
         pass
     quiet_docker('exec', container_id, 'mkdir', '-p', '/root/.ssh')
