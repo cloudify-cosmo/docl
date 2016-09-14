@@ -30,7 +30,7 @@ DATA_JSON_TARGET_PATH = '/root/data.json'
 BUFFER_SIZE = 1024 * 64
 MANAGER_IMAGE_URL = 'http://repository.cloudifysource.org/org/cloudify3/tests/manager.tar.gz'  # noqa
 MANAGER_IMAGE_COMMIT_SHA_URL = 'http://repository.cloudifysource.org/org/cloudify3/tests/image.sha1'  # noqa
-PYDEVD_EGG_URL = 'http://repository.cloudifysource.org/org/cloudify3/components/pycharm-debug.egg'  # noqa
+PYDEVD_EGG_URL = 'http://cloudify-tests-files.s3.amazonaws.com/components/pycharm-debug.egg'  # noqa
 
 EXPOSE = (22, 80, 443, 5671, 5672, 15672, 9200, 5432, 8086, 9999)
 PUBLISH = ()
