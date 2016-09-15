@@ -34,7 +34,7 @@ To bootstrap a manager a manager using the simple manager blueprint suppplied du
 docl bootstrap
 ```
 
-`bootstrap` accepts a `--serve-resources-tar` flag that will download the resources tar locally and will act as a local file server during the bootstrap process. The resources tar will not be re-downloaded if it already exists unless the invalidate cache flag is supplied as well.
+`bootstrap` accepts a `--serve-resources-tar` flag that will download the resources tar locally and will act as a local file server during the bootstrap process. The resources tar will not be re-downloaded if it already exists unless the invalidate cache flag (`--serve-resources-tar-invalidate-cache`) is supplied as well.
 
 ### `docl prepare`
 If you want to bootstrap on your own, create an empty container (CentOS 7 with systemd and ssh enabled suitable for bootstrap), by 
@@ -55,6 +55,8 @@ docl save-image
 ```
 
 To create an manager image from the currently installed manager. This step is required for mounting user code on manager containers.
+
+If you started a container by running `docl run` and made some changes to it that you'd like to perserve, you can run `docl save-image` as well.
 
 
 ### `docl pull-image`
@@ -95,6 +97,8 @@ To remove all containers started by `docl`, run
 ```
 docl clean
 ```
+
+Note that the image saved by running `docl save-image` will still be available to you.
 
 ### `docl restart-services`
 If a manager was started using `docl run --mount` you may need to restart certain services after making code changes. One option to do so is to run
