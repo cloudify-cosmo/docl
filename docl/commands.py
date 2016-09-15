@@ -106,7 +106,8 @@ def bootstrap(inputs=None, label=None, details_path=None, tag=None,
               container_id=None,
               serve_resources_tar=False,
               serve_resources_tar_invalidate_cache=False,
-              serve_resources_tar_no_progress=False):
+              serve_resources_tar_no_progress=False,
+              cfy_args=None):
     inputs = inputs or []
     with tempfile.NamedTemporaryFile() as f:
         if not container_id:
@@ -120,9 +121,9 @@ def bootstrap(inputs=None, label=None, details_path=None, tag=None,
                     invalidate_cache=serve_resources_tar_invalidate_cache,
                     no_progress=serve_resources_tar_no_progress) as url:
                 inputs.append('manager_resources_package={}'.format(url))
-                _cfy_bootstrap(inputs=inputs)
+                _cfy_bootstrap(inputs=inputs, cfy_args=cfy_args)
         else:
-            _cfy_bootstrap(inputs=inputs)
+            _cfy_bootstrap(inputs=inputs, cfy_args=cfy_args)
 
 
 @command
@@ -488,12 +489,14 @@ def _ssh_setup(container_id, container_ip):
             container_id))
 
 
-def _cfy_bootstrap(inputs):
+def _cfy_bootstrap(inputs, cfy_args):
     cfy.init(r=True)
+    args = ['--inputs={}'.format(i) for i in inputs]
+    if cfy_args:
+        args += shlex.split(cfy_args)
     try:
         from cloudify_cli import env  # noqa
-        cfy.bootstrap(configuration.simple_manager_blueprint_path,
-                      *['--inputs={}'.format(i) for i in inputs])
+        cfy.bootstrap(configuration.simple_manager_blueprint_path, *args)
     except ImportError:
         cfy_config_path = path('.cloudify') / 'config.yaml'
         cfy_config = yaml.safe_load(cfy_config_path.text())
@@ -501,8 +504,7 @@ def _cfy_bootstrap(inputs):
         cfy_config_path.write_text(yaml.safe_dump(cfy_config,
                                                   default_flow_style=False))
         cfy.bootstrap(
-            blueprint_path=configuration.simple_manager_blueprint_path,
-            *['--inputs={}'.format(i) for i in inputs])
+            blueprint_path=configuration.simple_manager_blueprint_path, *args)
 
 
 def _write_inputs(container_ip, inputs_path):
