@@ -20,6 +20,7 @@ import tempfile
 import time
 import threading
 import os
+import base64
 
 import sh
 import argh
@@ -140,24 +141,22 @@ def save_image(container_id=None,
     container_id = container_id or work.last_container_id
     docker_tag = tag or configuration.manager_image_docker_tag
     logger.info('Preparing manager container before saving as docker image')
-    if not skip_agent_prepare:
-        quiet_docker('exec', container_id, 'mkdir', '-p',
-                     constants.AGENT_TEMPLATE_DIR)
-        quiet_docker('exec', container_id, 'tar', 'xf',
-                     configuration.agent_package_path, '--strip=1', '-C',
-                     constants.AGENT_TEMPLATE_DIR)
     cp(source=resources.DIR / 'update_running_system.py',
        target=':{}'.format(constants.PY_SCRIPT_TARGET_PATH),
        container_id=container_id)
     cp(source=resources.DIR / 'prepare_save_image.py',
        target=':{}'.format(constants.PREPARE_SAVE_IMAGE_TARGET_PATH),
        container_id=container_id)
-    quiet_docker('exec', container_id, 'chmod', '+x',
-                 constants.PREPARE_SAVE_IMAGE_TARGET_PATH)
+    params = {
+        'data_json_path': constants.DATA_JSON_TARGET_PATH,
+        'pydevd_egg_url': configuration.pydevd_egg_url,
+        'skip_agent_prepare': skip_agent_prepare,
+        'agent_template_dir': constants.AGENT_TEMPLATE_DIR,
+        'agent_package_path': configuration.agent_package_path
+    }
     docker('exec', container_id, 'python',
            constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
-           constants.DATA_JSON_TARGET_PATH,
-           configuration.pydevd_egg_url)
+           base64.b64encode(json.dumps(params)))
     logger.info('Saving manager container to image {}'.format(docker_tag))
     quiet_docker.stop(container_id)
     quiet_docker.commit(container_id, docker_tag)

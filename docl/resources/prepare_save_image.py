@@ -13,13 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import json
 import os
 import sys
 import subprocess
 
 
 def _run(command):
-    subprocess.Popen(command.split(' ')).wait()
+    subprocess.check_call(command.split(' '))
 
 
 def _write(path, line):
@@ -50,9 +52,22 @@ def _install_pycharm(pydevd_egg_url):
     _run('/opt/mgmtworker/env/bin/easy_install {}'.format(egg_path))
 
 
+def _prepare_agent_template(agent_template_dir, agent_package_path):
+    if not os.path.exists(agent_template_dir):
+        os.makedirs(agent_template_dir)
+    _run('tar xf {} --strip=1 -C {}'.format(agent_package_path,
+                                            agent_template_dir))
+
+
 def main():
-    data_json_path = sys.argv[1]
-    pydevd_egg_url = sys.argv[2]
+    params = json.loads(base64.b64decode(sys.argv[1]))
+    data_json_path = params['data_json_path']
+    pydevd_egg_url = params['pydevd_egg_url']
+    skip_agent_prepare = params['skip_agent_prepare']
+    agent_template_dir = params['agent_template_dir']
+    agent_package_path = params['agent_package_path']
+    if not skip_agent_prepare:
+        _prepare_agent_template(agent_template_dir, agent_package_path)
     _write_to_files(data_json_path)
     _remove_old_json(data_json_path)
     _install_pycharm(pydevd_egg_url)
