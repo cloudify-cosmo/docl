@@ -116,7 +116,7 @@ def update_provider_context(data):
     })
     with current_ctx.push(ctx):
         client = get_rest_client()
-    for _ in range(200):
+    for _ in range(1800):
         try:
             context_obj = client.manager.get_context()
             break
