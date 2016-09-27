@@ -30,7 +30,7 @@ from watchdog import events
 from watchdog import observers
 from path import path
 
-from cloudify_cli.env import profile
+from cloudify_cli import env as cli_env
 
 from docl import constants
 from docl import resources
@@ -141,22 +141,7 @@ def save_image(container_id=None,
     container_id = container_id or work.last_container_id
     docker_tag = tag or configuration.manager_image_docker_tag
     logger.info('Preparing manager container before saving as docker image')
-    cp(source=resources.DIR / 'update_running_system.py',
-       target=':{}'.format(constants.PY_SCRIPT_TARGET_PATH),
-       container_id=container_id)
-    cp(source=resources.DIR / 'prepare_save_image.py',
-       target=':{}'.format(constants.PREPARE_SAVE_IMAGE_TARGET_PATH),
-       container_id=container_id)
-    params = {
-        'data_json_path': constants.DATA_JSON_TARGET_PATH,
-        'pydevd_egg_url': configuration.pydevd_egg_url,
-        'skip_agent_prepare': skip_agent_prepare,
-        'agent_template_dir': constants.AGENT_TEMPLATE_DIR,
-        'agent_package_path': configuration.agent_package_path
-    }
-    docker('exec', container_id, 'python',
-           constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
-           base64.b64encode(json.dumps(params)))
+    _run_container_preparation_scripts(container_id, skip_agent_prepare)
     logger.info('Saving manager container to image {}'.format(docker_tag))
     quiet_docker.stop(container_id)
     quiet_docker.commit(container_id, docker_tag)
@@ -172,6 +157,27 @@ def save_image(container_id=None,
              _in_bufsize=constants.BUFFER_SIZE,
              _out=output_file)
 
+
+def _run_container_preparation_scripts(container_id, skip_agent_prepare):
+    cp(source=resources.DIR / 'update_running_system.py',
+       target=':{}'.format(constants.PY_SCRIPT_TARGET_PATH),
+       container_id=container_id)
+    cp(source=resources.DIR / 'prepare_save_image.py',
+       target=':{}'.format(constants.PREPARE_SAVE_IMAGE_TARGET_PATH),
+       container_id=container_id)
+    params = {
+        'data_json_path': constants.DATA_JSON_TARGET_PATH,
+        'pydevd_egg_url': configuration.pydevd_egg_url,
+        'skip_agent_prepare': skip_agent_prepare,
+        'agent_template_dir': constants.AGENT_TEMPLATE_DIR,
+        'agent_package_path': configuration.agent_package_path,
+        'credentials_path': constants.CREDENTIALS_TARGET_PATH,
+        'admin_username': cli_env.get_username(),
+        'admin_password': cli_env.get_password()
+    }
+    docker('exec', container_id, 'python',
+           constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
+           base64.b64encode(json.dumps(params)))
 
 @command
 def pull_image(no_progress=False):
@@ -216,14 +222,19 @@ def run(mount=False, label=None, details_path=None, tag=None):
                                                 label=label,
                                                 details_path=details_path)
     _ssh_setup(container_id, container_ip)
+    _update_container(container_id, container_ip)
+    cfy.use(container_ip)
+
+
+def _update_container(container_id, container_ip):
+    logger.info('Updating files on the container')
     with tempfile.NamedTemporaryFile() as f:
         json.dump({
             'ip': container_ip,
             'services': constants.ALL_IP_SERVICES,
-            'rest_username': os.environ.get('CLOUDIFY_USERNAME'),
-            'rest_password': os.environ.get('CLOUDIFY_PASSWORD'),
-            'rest_port': profile.rest_port,
-            'rest_protocol': profile.rest_protocol,
+            'credentials_path': constants.CREDENTIALS_TARGET_PATH,
+            'rest_port': cli_env.profile.rest_port,
+            'rest_protocol': cli_env.profile.rest_protocol,
             'is_debug_on': bool(os.environ.get('DEBUG_MODE')),
             'host_ip': resources_server.get_host()
         }, f)

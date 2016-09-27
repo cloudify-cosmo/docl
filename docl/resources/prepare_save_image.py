@@ -59,6 +59,13 @@ def _prepare_agent_template(agent_template_dir, agent_package_path):
                                             agent_template_dir))
 
 
+def _save_credentials(params):
+    credentials = {'admin_username': params['admin_username'],
+                   'admin_password': params['admin_password']}
+    with open(params['credentials_path'], 'w') as f:
+        json.dump(credentials, f)
+
+
 def main():
     params = json.loads(base64.b64decode(sys.argv[1]))
     data_json_path = params['data_json_path']
@@ -71,6 +78,7 @@ def main():
     _write_to_files(data_json_path)
     _remove_old_json(data_json_path)
     _install_pycharm(pydevd_egg_url)
+    _save_credentials(params)
 
 
 if __name__ == '__main__':

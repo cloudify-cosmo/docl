@@ -96,22 +96,24 @@ def restart_services(services):
         os.system('systemctl restart {0}'.format(service))
 
 
+def _get_credentials_dict(credentials_path):
+    with open(credentials_path, 'r') as f:
+        return json.load(f)
+
+
 def update_provider_context(data):
-    ip = data['ip']
-    username = data['rest_username']
-    password = data['rest_password']
-    rest_port = data['rest_port']
-    rest_protocol = data['rest_protocol']
-    print 'Updating provider context with broker_ip: {}'.format(ip)
+    credentials = _get_credentials_dict(data['credentials_path'])
+    password = credentials['admin_password']
+    print 'Updating provider context with broker_ip: {}'.format(data['ip'])
     os.environ.update({
-        'REST_HOST': ip,
-        'REST_PORT': str(rest_port),
-        'REST_PROTOCOL': rest_protocol,
+        'REST_HOST': data['ip'],
+        'REST_PORT': str(data['rest_port']),
+        'REST_PROTOCOL': data['rest_protocol'],
         'SECURITY_ENABLED': str(password is not None),
         'VERIFY_REST_CERTIFICATE': '',
     })
     ctx = CloudifyContext({
-        'rest_username': username,
+        'rest_username': credentials['admin_username'],
         'rest_password': password
     })
     with current_ctx.push(ctx):
@@ -126,7 +128,7 @@ def update_provider_context(data):
         raise
     name = context_obj['name']
     context = context_obj['context']
-    context['cloudify']['cloudify_agent']['broker_ip'] = ip
+    context['cloudify']['cloudify_agent']['broker_ip'] = data['ip']
     client.manager.update_context(name, context)
 
 
