@@ -2,7 +2,7 @@
 
 ## Prerequisites
 * Docker should be installed and running. It should be started with root privileges because containers are started with the `--privileged` flag.
-* Docker should be accesible on tcp (as opposed to the default unix socket).
+* Docker should be accesible on tcp (as opposed to the default unix socket) - [example here]( https://coreos.com/os/docs/latest/customizing-docker.html).
 
 ## Installation
 `docl` can be installed by running 
