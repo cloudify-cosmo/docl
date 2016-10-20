@@ -19,13 +19,8 @@ import json
 import os
 import re
 import sys
-import time
 
 import requests.packages.urllib3
-
-from cloudify.context import CloudifyContext
-from cloudify.state import current_ctx
-from cloudify.manager import get_rest_client
 
 requests.packages.urllib3.disable_warnings()
 
@@ -96,42 +91,6 @@ def restart_services(services):
         os.system('systemctl restart {0}'.format(service))
 
 
-def _get_credentials_dict(credentials_path):
-    with open(credentials_path, 'r') as f:
-        return json.load(f)
-
-
-def update_provider_context(data):
-    credentials = _get_credentials_dict(data['credentials_path'])
-    password = credentials['admin_password']
-    print 'Updating provider context with broker_ip: {}'.format(data['ip'])
-    os.environ.update({
-        'REST_HOST': data['ip'],
-        'REST_PORT': str(data['rest_port']),
-        'REST_PROTOCOL': data['rest_protocol'],
-        'SECURITY_ENABLED': str(password is not None),
-        'VERIFY_REST_CERTIFICATE': '',
-    })
-    ctx = CloudifyContext({
-        'rest_username': credentials['admin_username'],
-        'rest_password': password
-    })
-    with current_ctx.push(ctx):
-        client = get_rest_client()
-    for _ in range(1800):
-        try:
-            context_obj = client.manager.get_context()
-            break
-        except:
-            time.sleep(0.1)
-    else:
-        raise
-    name = context_obj['name']
-    context = context_obj['context']
-    context['cloudify']['cloudify_agent']['broker_ip'] = data['ip']
-    client.manager.update_context(name, context)
-
-
 def main():
     with open(sys.argv[1]) as f:
         data = json.load(f)
@@ -139,7 +98,6 @@ def main():
     services = data['services']
     fix_ip_in_files(ip)
     restart_services(services)
-    update_provider_context(data)
     os.system('')
 
 if __name__ == '__main__':

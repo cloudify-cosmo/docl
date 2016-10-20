@@ -222,8 +222,8 @@ def run(mount=False, label=None, details_path=None, tag=None):
                                                 label=label,
                                                 details_path=details_path)
     _ssh_setup(container_id, container_ip)
-    _update_container(container_id, container_ip)
     cfy.use(container_ip)
+    _update_container(container_id, container_ip)
 
 
 def _update_container(container_id, container_ip):
@@ -231,21 +231,29 @@ def _update_container(container_id, container_ip):
     with tempfile.NamedTemporaryFile() as f:
         json.dump({
             'ip': container_ip,
-            'services': constants.ALL_IP_SERVICES,
-            'credentials_path': constants.CREDENTIALS_TARGET_PATH,
-            'rest_port': cli_env.profile.rest_port,
-            'rest_protocol': cli_env.profile.rest_protocol,
-            'is_debug_on': bool(os.environ.get('DEBUG_MODE')),
-            'host_ip': resources_server.get_host()
+            'services': constants.ALL_IP_SERVICES
         }, f)
         f.flush()
         cp(source=f.name,
            target=':{}'.format(constants.DATA_JSON_TARGET_PATH),
            container_id=container_id)
+    _update_provider_context(container_ip)
     docker('exec', container_id,
            '/opt/mgmtworker/env/bin/python', '-u',
            constants.PY_SCRIPT_TARGET_PATH,
            constants.DATA_JSON_TARGET_PATH)
+
+
+def _update_provider_context(container_ip):
+    logger.info('Updating provider context with broker_ip: {}'.format(
+        container_ip)
+    )
+    client = cli_env.get_rest_client()
+    context_obj = client.manager.get_context()
+    name = context_obj['name']
+    context = context_obj['context']
+    context['cloudify']['cloudify_agent']['broker_ip'] = container_ip
+    client.manager.update_context(name, context)
 
 
 @command
