@@ -231,6 +231,7 @@ def _update_container(container_id, container_ip):
     with tempfile.NamedTemporaryFile() as f:
         json.dump({
             'ip': container_ip,
+            'is_debug_on': bool(os.environ.get('DEBUG_MODE')),
             'services': constants.ALL_IP_SERVICES
         }, f)
         f.flush()
