@@ -179,6 +179,7 @@ def _run_container_preparation_scripts(container_id, skip_agent_prepare):
            constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
            base64.b64encode(json.dumps(params)))
 
+
 @command
 def pull_image(no_progress=False):
     online_sha1 = requests.get(
@@ -222,8 +223,26 @@ def run(mount=False, label=None, details_path=None, tag=None):
                                                 label=label,
                                                 details_path=details_path)
     _ssh_setup(container_id, container_ip)
-    cfy.use(container_ip)
+    _get_credentials_and_use_manager(container_id, container_ip)
     _update_container(container_id, container_ip)
+
+
+def _get_credentials_and_use_manager(container_id, container_ip):
+    result = quiet_docker(
+        'exec',
+        container_id,
+        'cat',
+        constants.CREDENTIALS_TARGET_PATH
+    )
+    credentials = json.loads(result.strip())
+    cfy.use(
+        container_ip,
+        manager_username=credentials['admin_username'],
+        manager_password=credentials['admin_password'],
+        ssh_user='root',
+        ssh_key=constants.SSH_KEY
+    )
+    cli_env.profile = cli_env.get_profile_context(container_ip)
 
 
 def _update_container(container_id, container_ip):
