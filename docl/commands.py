@@ -29,6 +29,7 @@ import requests
 from watchdog import events
 from watchdog import observers
 from path import path
+from time import sleep
 
 from cloudify_cli import env as cli_env
 
@@ -223,7 +224,17 @@ def run(mount=False, label=None, details_path=None, tag=None):
                                                 label=label,
                                                 details_path=details_path)
     _ssh_setup(container_id, container_ip)
-    _get_credentials_and_use_manager(container_id, container_ip)
+
+    max_retries, interval = 300, 0.1
+    for _ in range(max_retries):
+        try:
+            _get_credentials_and_use_manager(container_id, container_ip)
+            break
+        except BaseException:
+            sleep(interval)
+    else:
+        raise
+
     _update_container(container_id, container_ip)
 
 
