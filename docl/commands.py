@@ -240,7 +240,7 @@ def _get_credentials_and_use_manager(container_id, container_ip):
         manager_username=credentials['admin_username'],
         manager_password=credentials['admin_password'],
         ssh_user='root',
-        ssh_key=constants.SSH_KEY
+        ssh_key=configuration.ssh_key_path
     )
     cli_env.profile = cli_env.get_profile_context(container_ip)
 
