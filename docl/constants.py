@@ -65,7 +65,8 @@ PACKAGE_DIR = {
     'flask_securest': 'flask-securest',
     'riemann_controller': 'cloudify-manager/plugins/riemann-controller',
     'diamond_agent': 'cloudify-diamond-plugin',
-    'cloudify_handler': 'cloudify-diamond-plugin'
+    'cloudify_handler': 'cloudify-diamond-plugin',
+    'cloudify_premium': 'cloudify-premium'
 }
 
 PACKAGE_SERVICES = {
@@ -86,6 +87,7 @@ PACKAGE_SERVICES = {
         AGENT_STUB_SERVICE
     ),
     'dsl_parser': ('cloudify-restservice',),
+    'cloudify_premium': ('cloudify-restservice',),
     'manager_rest': ('cloudify-restservice',),
     'plugin_installer': (
         'cloudify-restservice',
@@ -135,6 +137,7 @@ ENV_PACKAGES = {
         'windows_plugin_installer',
         'worker_installer',
         'flask_securest',
+        'cloudify_premium',
     ),
     'mgmtworker': (
         'cloudify',
