@@ -230,7 +230,7 @@ def run(mount=False, label=None, details_path=None, tag=None):
         try:
             _get_credentials_and_use_manager(container_id, container_ip)
             break
-        except BaseException:
+        except sh.ErrorReturnCode:
             sleep(interval)
     else:
         raise
