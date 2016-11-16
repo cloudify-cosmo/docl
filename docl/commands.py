@@ -262,6 +262,7 @@ def _update_container(container_id, container_ip):
         json.dump({
             'ip': container_ip,
             'is_debug_on': bool(os.environ.get('DEBUG_MODE')),
+            'host': resources_server.get_host(),
             'services': constants.ALL_IP_SERVICES
         }, f)
         f.flush()
