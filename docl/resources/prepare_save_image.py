@@ -60,8 +60,11 @@ def _prepare_agent_template(agent_template_dir, agent_package_path):
 
 
 def _save_credentials(params):
-    credentials = {'admin_username': params['admin_username'],
-                   'admin_password': params['admin_password']}
+    credentials = {
+        'admin_username': params['admin_username'],
+        'admin_password': params['admin_password'],
+        'admin_tenant': params['admin_tenant']
+    }
     with open(params['credentials_path'], 'w') as f:
         json.dump(credentials, f)
 

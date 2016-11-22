@@ -174,7 +174,8 @@ def _run_container_preparation_scripts(container_id, skip_agent_prepare):
         'agent_package_path': configuration.agent_package_path,
         'credentials_path': constants.CREDENTIALS_TARGET_PATH,
         'admin_username': cli_env.get_username(),
-        'admin_password': cli_env.get_password()
+        'admin_password': cli_env.get_password(),
+        'admin_tenant': cli_env.get_tenant_name()
     }
     docker('exec', container_id, 'python',
            constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
@@ -250,6 +251,7 @@ def _get_credentials_and_use_manager(container_id, container_ip):
         container_ip,
         manager_username=credentials['admin_username'],
         manager_password=credentials['admin_password'],
+        manager_tenant=credentials['admin_tenant'],
         ssh_user='root',
         ssh_key=configuration.ssh_key_path
     )
