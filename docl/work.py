@@ -58,4 +58,6 @@ class Work(object):
     def save_last_container_id_and_ip(self, container_id, container_ip):
         (self.dir / 'last_container_id').write_text(container_id)
         (self.dir / 'last_container_ip').write_text(container_ip)
+
+
 work = Work()

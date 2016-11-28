@@ -156,4 +156,5 @@ class Configuration(object):
     def pydevd_egg_url(self):
         return self.conf.get('pydevd_egg_url')
 
+
 configuration = Configuration()

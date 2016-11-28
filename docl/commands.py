@@ -247,7 +247,7 @@ def _get_credentials_and_use_manager(container_id, container_ip):
         constants.CREDENTIALS_TARGET_PATH
     )
     credentials = json.loads(result.strip())
-    cfy.use(
+    cfy.profiles.use(
         container_ip,
         manager_username=credentials['admin_username'],
         manager_password=credentials['admin_password'],
