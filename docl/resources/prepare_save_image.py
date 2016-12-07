@@ -44,14 +44,6 @@ def _remove_old_json(data_json_path):
         os.remove(data_json_path)
 
 
-def _install_pycharm(pydevd_egg_url):
-    egg_path = '/root/pycharm-debug.egg'
-    if not os.path.isfile(egg_path):
-        _run('curl -o {} {}'.format(egg_path, pydevd_egg_url))
-    _run('/opt/manager/env/bin/easy_install {}'.format(egg_path))
-    _run('/opt/mgmtworker/env/bin/easy_install {}'.format(egg_path))
-
-
 def _prepare_agent_template(agent_template_dir, agent_package_path):
     if not os.path.exists(agent_template_dir):
         os.makedirs(agent_template_dir)
@@ -69,10 +61,15 @@ def _save_credentials(params):
         json.dump(credentials, f)
 
 
+def _install_pydevd():
+    for venv in ['manager', 'mgmtworker']:
+        pip = os.path.join('/opt', venv, 'env', 'bin', 'pip')
+        _run('{0} install pydevd'.format(str(pip)))
+
+
 def main():
     params = json.loads(base64.b64decode(sys.argv[1]))
     data_json_path = params['data_json_path']
-    pydevd_egg_url = params['pydevd_egg_url']
     skip_agent_prepare = params['skip_agent_prepare']
     agent_template_dir = params['agent_template_dir']
     agent_package_path = params['agent_package_path']
@@ -80,8 +77,8 @@ def main():
         _prepare_agent_template(agent_template_dir, agent_package_path)
     _write_to_files(data_json_path)
     _remove_old_json(data_json_path)
-    _install_pycharm(pydevd_egg_url)
     _save_credentials(params)
+    _install_pydevd()
 
 
 if __name__ == '__main__':

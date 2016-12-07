@@ -168,7 +168,6 @@ def _run_container_preparation_scripts(container_id, skip_agent_prepare):
        container_id=container_id)
     params = {
         'data_json_path': constants.DATA_JSON_TARGET_PATH,
-        'pydevd_egg_url': configuration.pydevd_egg_url,
         'skip_agent_prepare': skip_agent_prepare,
         'agent_template_dir': constants.AGENT_TEMPLATE_DIR,
         'agent_package_path': configuration.agent_package_path,

@@ -31,7 +31,6 @@ CREDENTIALS_TARGET_PATH = '/root/test_credentials.json'
 BUFFER_SIZE = 1024 * 64
 MANAGER_IMAGE_URL = 'http://cloudify-tests-files.s3.amazonaws.com/docl-images/docl-manager.tar.gz'  # noqa
 MANAGER_IMAGE_COMMIT_SHA_URL = 'http://cloudify-tests-files.s3.amazonaws.com/docl-images/docl-manager.sha1'  # noqa
-PYDEVD_EGG_URL = 'http://cloudify-tests-files.s3.amazonaws.com/components/pycharm-debug.egg'  # noqa
 
 
 EXPOSE = (22, 80, 443, 5671, 5672, 15672, 9200, 5432, 8086, 9999)
