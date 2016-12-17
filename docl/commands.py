@@ -216,12 +216,14 @@ def remove_image(tag=None):
 
 @command
 @argh.arg('-l', '--label', action='append')
-def run(mount=False, label=None, details_path=None, tag=None):
+@argh.arg('-n', '--name')
+def run(mount=False, label=None, name=None, details_path=None, tag=None):
     docker_tag = tag or configuration.manager_image_docker_tag
     volumes = _build_volumes() if mount else None
     container_id, container_ip = _run_container(docker_tag=docker_tag,
                                                 volume=volumes,
                                                 label=label,
+                                                name=name,
                                                 details_path=details_path)
     _ssh_setup(container_id, container_ip)
 
@@ -480,14 +482,18 @@ def _create_base_container(label, details_path, tag):
     return container_id, container_ip
 
 
-def _run_container(docker_tag, volume=None, label=None, details_path=None):
+def _run_container(docker_tag, volume=None, label=None, name=None,
+                   details_path=None):
     label = label or []
     volume = volume or []
     expose = configuration.expose
     publish = configuration.publish
     hostname = configuration.container_hostname
+    docker_args = ['--privileged', '--detach']
+    if name:
+        docker_args.append('--name={}'.format(name))
     container_id = quiet_docker.run(
-        *['--privileged', '--detach'] +
+        *docker_args +
          ['--hostname={}'.format(hostname)] +
          ['--expose={}'.format(e) for e in expose] +
          ['--publish={}'.format(p) for p in publish] +
