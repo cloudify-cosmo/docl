@@ -15,7 +15,7 @@
 
 from __future__ import absolute_import
 
-
+import os
 import subprocess
 import functools
 import sys
@@ -33,7 +33,7 @@ def bake(cmd):
 
 
 def docker_proxy(quiet=False):
-    result = sh.docker.bake('-H', configuration.docker_host)
+    result = docker_command.bake('-H', configuration.docker_host)
     if not quiet:
         result = bake(result)
     return result
@@ -41,11 +41,30 @@ def docker_proxy(quiet=False):
 
 docker = proxy_tools.Proxy(docker_proxy)
 quiet_docker = proxy_tools.Proxy(functools.partial(docker_proxy, quiet=True))
-ssh_keygen = sh.Command('ssh-keygen')
-ssh_keyscan = sh.Command('ssh-keyscan')
-cfy = bake(sh.cfy)
-serve = sh.serve
-gzip = sh.gzip.bake(_tty_out=False)
+
+try:
+    ssh_keygen = sh.Command('ssh-keygen')
+    ssh_keyscan = sh.Command('ssh-keyscan')
+    gzip = sh.gzip
+    docker_command = sh.docker
+except sh.CommandNotFound:
+    # required programs not found on the PATH - maybe PATH was not set;
+    # try the default locations
+    ssh_keygen = sh.Command('/usr/bin/ssh-keygen')
+    ssh_keyscan = sh.Command('/usr/bin/ssh-keyscan')
+    gzip = sh.Command('/bin/gzip')
+    docker_command = sh.Command('/usr/bin/docker')
+
+gzip = gzip.bake(_tty_out=False)
+
+try:
+    cfy = bake(sh.cfy)
+    serve = sh.serve
+except sh.CommandNotFound:
+    # use cfy and serve from the same virtualenv
+    cfy = bake(sh.Command(
+        os.path.join(os.path.dirname(sys.executable), 'cfy')))
+    serve = sh.Command(os.path.join(os.path.dirname(sys.executable), 'serve'))
 
 
 def ssh(ip, keypath):
