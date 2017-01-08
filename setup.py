@@ -32,7 +32,7 @@ setup(
     install_requires=[
         'argh',
         'sh==1.11',
-        'path.py>=8.1.2',
+        'path.py==8.1.2',
         'watchdog>=0.8.3',
         'FileServer',
         'cloudify',
