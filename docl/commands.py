@@ -489,7 +489,20 @@ def _run_container(docker_tag, volume=None, label=None, name=None,
     expose = configuration.expose
     publish = configuration.publish
     hostname = configuration.container_hostname
-    docker_args = ['--privileged', '--detach']
+    docker_args = [
+        '--detach',
+        # flags required by the solita/centos-systemd-ssh base image
+        # see the README for their explanation:
+        # https://github.com/solita/docker-systemd/tree/centos-7#running
+        '--security-opt', 'seccomp=unconfined',
+        '--stop-signal=SIGRTMIN+3',
+        '--tmpfs', '/run',
+        '--tmpfs', '/run/lock',
+        '--volume', '/sys/fs/cgroup:/sys/fs/cgroup:ro',
+        '-t',
+        # required to allow iptables inside the container
+        '--cap-add', 'NET_ADMIN'
+    ]
     if name:
         docker_args.append('--name={}'.format(name))
     container_id = quiet_docker.run(
