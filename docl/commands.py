@@ -199,11 +199,11 @@ def pull_image(no_progress=False):
     files.download(url=configuration.manager_image_url,
                    output_path=work.pulled_image_path,
                    no_progress=no_progress)
-    logger.info('Loading image into docker')
-    docker.load(gzip('-dc', work.pulled_image_path,
-                     _piped=True,
-                     _out_bufsize=constants.BUFFER_SIZE),
-                _in_bufsize=constants.BUFFER_SIZE)
+    logger.info('Loading image into docker (may take a while)')
+    quiet_docker.load(gzip('-dc', work.pulled_image_path,
+                           _piped=True,
+                           _out_bufsize=constants.BUFFER_SIZE),
+                      _in_bufsize=constants.BUFFER_SIZE)
     work.last_pulled_image_commit_sha1 = online_sha1
 
 
