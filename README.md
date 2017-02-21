@@ -21,7 +21,7 @@ Run `docl init` and supply the different configuration options based on your set
 * `--docker-host` should point to the docker endpoint.
 * `--source-root` should point to the root directory in which all cloudify related projects are cloned. This is used for mounting code
   from the host machine to the relevant manager directories.
-
+example: docl init --simple-manager-blueprint-path='/home/adig-pcu/dev/repos/cloudify-manager-blueprints/simple-manager-blueprint.yaml' --ssh-key-path='~/.ssh/rackspace.pem' --docker-host='127.0.0.1' --source-root='~/dev/repos'
 ## Usage
 
 After the initial configuration, most commands don't require any additional configuration to work with.
