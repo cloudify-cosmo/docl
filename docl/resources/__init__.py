@@ -16,11 +16,11 @@
 
 import pkgutil
 
-from path import Path
+from path import path
 
 
 def get(resource):
     return pkgutil.get_data(__package__, resource)
 
 
-DIR = Path(__file__).dirname()
+DIR = path(__file__).dirname()

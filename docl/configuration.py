@@ -18,7 +18,7 @@ import os
 
 import argh
 import yaml
-from path import Path
+from path import path
 
 from docl import constants
 
@@ -41,7 +41,7 @@ class Configuration(object):
             raise argh.CommandError('Already initialized. '
                                     'Run "docl init --reset"')
         workdir = workdir or self.conf_dir / 'work'
-        workdir = Path(workdir).expanduser().abspath()
+        workdir = path(workdir).expanduser().abspath()
         conf.write_text(yaml.safe_dump({
             'simple_manager_blueprint_path': str(simple_manager_blueprint_path),  # noqa
             'ssh_key_path': str(ssh_key_path),
@@ -66,7 +66,7 @@ class Configuration(object):
 
     @property
     def conf_dir(self):
-        return Path(os.environ.get(constants.DOCL_HOME_ENV_VAR,
+        return path(os.environ.get(constants.DOCL_HOME_ENV_VAR,
                                    '~/.docl')).expanduser()
 
     @property
@@ -85,11 +85,11 @@ class Configuration(object):
 
     @property
     def ssh_key_path(self):
-        return Path(self.conf.get('ssh_key_path'))
+        return path(self.conf.get('ssh_key_path'))
 
     @property
     def simple_manager_blueprint_path(self):
-        return Path(self.conf.get('simple_manager_blueprint_path'))
+        return path(self.conf.get('simple_manager_blueprint_path'))
 
     @property
     def clean_image_docker_tag(self):
@@ -101,7 +101,7 @@ class Configuration(object):
 
     @property
     def source_root(self):
-        return Path(self.conf.get('source_root')).expanduser().abspath()
+        return path(self.conf.get('source_root')).expanduser().abspath()
 
     @property
     def services(self):
@@ -141,7 +141,7 @@ class Configuration(object):
 
     @property
     def workdir(self):
-        return Path(self.conf['workdir'])
+        return path(self.conf['workdir'])
 
     @property
     def manager_image_url(self):

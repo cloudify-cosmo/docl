@@ -28,7 +28,7 @@ import yaml
 import requests
 from watchdog import events
 from watchdog import observers
-from path import Path
+from path import path
 from time import sleep
 
 from cloudify_cli import env as cli_env
@@ -62,8 +62,8 @@ def init(simple_manager_blueprint_path=None,
          source_root=constants.SOURCE_ROOT,
          workdir=None,
          reset=False):
-    ssh_key_path = Path(ssh_key_path).expanduser()
-    simple_manager_blueprint_path = Path(
+    ssh_key_path = path(ssh_key_path).expanduser()
+    simple_manager_blueprint_path = path(
         simple_manager_blueprint_path).expanduser()
     required_files = {
         simple_manager_blueprint_path: 'You must specify a path '
@@ -354,8 +354,8 @@ def build_agent(container_id=None):
     container_id = container_id or work.last_container_id
     quiet_docker('exec', container_id, 'tar', 'czf',
                  configuration.agent_package_path, '-C',
-                 Path(constants.AGENT_TEMPLATE_DIR).dirname(),
-                 Path(constants.AGENT_TEMPLATE_DIR).basename())
+                 path(constants.AGENT_TEMPLATE_DIR).dirname(),
+                 path(constants.AGENT_TEMPLATE_DIR).basename())
 
 
 @command
@@ -466,7 +466,7 @@ def _build_volumes():
         else:
             permissions = 'ro'
         src = resource['src']
-        if not Path(src).isabs():
+        if not path(src).isabs():
             src = '{}/{}'.format(configuration.source_root, src)
         volumes[dst] = '{}:{}:{}'.format(src, dst, permissions)
     return volumes.values()
@@ -520,7 +520,7 @@ def _extract_container_ip(container_id):
 def _ssh_setup(container_id, container_ip):
     logger.info('Applying ssh configuration to manager container')
     try:
-        known_hosts = Path('~/.ssh/known_hosts').expanduser()
+        known_hosts = path('~/.ssh/known_hosts').expanduser()
         # Known hosts file may not exist
         ssh_keygen('-R', container_ip)
         fingerprint = None
@@ -555,7 +555,7 @@ def _cfy_bootstrap(inputs, cfy_args):
         from cloudify_cli import env  # noqa
         cfy.bootstrap(configuration.simple_manager_blueprint_path, *args)
     except ImportError:
-        cfy_config_path = Path('.cloudify') / 'config.yaml'
+        cfy_config_path = path('.cloudify') / 'config.yaml'
         cfy_config = yaml.safe_load(cfy_config_path.text())
         cfy_config['colors'] = True
         cfy_config_path.write_text(yaml.safe_dump(cfy_config,
@@ -565,7 +565,7 @@ def _cfy_bootstrap(inputs, cfy_args):
 
 
 def _write_inputs(container_ip, inputs_path):
-    Path(inputs_path).write_text(yaml.safe_dump({
+    path(inputs_path).write_text(yaml.safe_dump({
         'public_ip': container_ip,
         'private_ip': container_ip,
         'ssh_user': 'root',
@@ -575,7 +575,7 @@ def _write_inputs(container_ip, inputs_path):
 
 
 def _write_container_details(container_id, container_ip, details_path):
-    Path(details_path).write_text(yaml.safe_dump({
+    path(details_path).write_text(yaml.safe_dump({
         'id': container_id,
         'ip': container_ip,
     }))

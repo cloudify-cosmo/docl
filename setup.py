@@ -19,7 +19,7 @@ from setuptools import setup
 
 setup(
     name='docl',
-    version='0.44',
+    version='0.45',
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
     packages=[
@@ -32,7 +32,7 @@ setup(
     install_requires=[
         'argh',
         'sh==1.11',
-        'path.py==10.1',
+        'path.py==8.1.2',
         'watchdog>=0.8.3',
         'FileServer'
     ],
