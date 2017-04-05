@@ -62,8 +62,8 @@ def fix_ip_in_files(ip):
          "db_address: '.*'",
          "db_address: '{ip}'"),
         ('/opt/manager/cloudify-rest.conf',
-         "amqp_address: '.*:5672/'",
-         "amqp_address: '{ip}:5672/'"),
+         "amqp_address: '.*:5671/'",
+         "amqp_address: '{ip}:5671/'"),
         ('/etc/logstash/conf.d/logstash.conf',
          'host => ".*"',
          'host => "{ip}"')
