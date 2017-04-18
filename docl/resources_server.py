@@ -16,7 +16,7 @@
 from contextlib import contextmanager
 
 import sh
-import yaml
+import os
 
 from docl import files
 from docl.configuration import configuration
@@ -77,9 +77,11 @@ def _download_resources_tar(no_progress):
 
 
 def _get_resources_url():
-    manager_blueprint_path = configuration.simple_manager_blueprint_path
-    manager_inputs_path = (manager_blueprint_path.dirname() / 'inputs' /
-                           'manager-inputs.yaml')
-    manager_inputs = yaml.safe_load(manager_inputs_path.text())
-    return manager_inputs[
-        'inputs']['manager_resources_package']['default']
+    single_tar_path_yaml = os.path.join(
+        configuration.source_root,
+        'cloudify-premium',
+        'packages-urls',
+        'manager-single-tar.yaml'
+    )
+    with open(single_tar_path_yaml, 'r') as f:
+        return f.read().strip()

@@ -571,6 +571,7 @@ def _write_inputs(container_ip, inputs_path):
         'ssh_user': 'root',
         'ssh_key_filename': str(configuration.ssh_key_path),
         'dsl_resources': [],
+        'set_manager_ip_on_boot': True
     }))
 
 

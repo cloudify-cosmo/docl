@@ -37,7 +37,7 @@ class Work(object):
 
     @property
     def cached_resources_tar_path(self):
-        return self.dir / 'resources.tar.gz'
+        return self.dir / 'cloudify-manager-resources.tar.gz'
 
     @property
     def pulled_image_path(self):
