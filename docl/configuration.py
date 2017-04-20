@@ -33,7 +33,8 @@ class Configuration(object):
              manager_image_docker_tag,
              source_root,
              workdir,
-             reset):
+             reset,
+             debug_ip):
         if not self.conf_dir.exists():
             self.conf_dir.mkdir()
         conf = self.conf_dir / 'config.yaml'
@@ -61,7 +62,8 @@ class Configuration(object):
             'agent_package_path': constants.AGENT_PACKAGE_PATH,
             'manager_image_url': constants.MANAGER_IMAGE_URL,
             'manager_image_commit_sha_url':
-                constants.MANAGER_IMAGE_COMMIT_SHA_URL
+                constants.MANAGER_IMAGE_COMMIT_SHA_URL,
+            'debug_ip': debug_ip
         }, default_flow_style=False))
 
     @property
@@ -150,6 +152,10 @@ class Configuration(object):
     @property
     def manager_image_commit_sha_url(self):
         return self.conf.get('manager_image_commit_sha_url')
+
+    @property
+    def debug_ip(self):
+        return self.conf.get('debug_ip')
 
 
 configuration = Configuration()

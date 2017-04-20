@@ -61,7 +61,8 @@ def init(simple_manager_blueprint_path=None,
          manager_image_docker_tag=constants.MANAGER_IMAGE_DOCKER_TAG,
          source_root=constants.SOURCE_ROOT,
          workdir=None,
-         reset=False):
+         reset=False,
+         debug_ip=None):
     ssh_key_path = path(ssh_key_path).expanduser()
     simple_manager_blueprint_path = path(
         simple_manager_blueprint_path).expanduser()
@@ -81,7 +82,8 @@ def init(simple_manager_blueprint_path=None,
         manager_image_docker_tag=manager_image_docker_tag,
         source_root=source_root,
         workdir=workdir,
-        reset=reset)
+        reset=reset,
+        debug_ip=debug_ip)
     logger.info('Configuration is saved to {}. Feel free to change it to your '
                 'liking.'.format(configuration.conf_path))
     work.init()
@@ -259,13 +261,23 @@ def _get_credentials_and_use_manager(container_id, container_ip):
     cli_env.profile = cli_env.get_profile_context(container_ip)
 
 
+def _get_debug_ip():
+    """Return the IP on which to remotely debug code on the manager"""
+    # If the debug IP was provided explicitly, it should supersede
+    debug_ip = configuration.debug_ip
+    if not debug_ip:
+        debug_ip = resources_server.get_host()
+    return debug_ip
+
+
 def _update_container(container_id, container_ip):
     logger.info('Updating files on the container')
+
     with tempfile.NamedTemporaryFile() as f:
         json.dump({
             'ip': container_ip,
             'is_debug_on': bool(os.environ.get('DEBUG_MODE')),
-            'host': resources_server.get_host(),
+            'host': _get_debug_ip(),
             'services': constants.ALL_IP_SERVICES
         }, f)
         f.flush()
