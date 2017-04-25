@@ -32,6 +32,9 @@ BUFFER_SIZE = 1024 * 64
 MANAGER_IMAGE_URL = 'http://cloudify-tests-files.s3.amazonaws.com/docl-images/docl-manager.tar.gz'  # noqa
 MANAGER_IMAGE_COMMIT_SHA_URL = 'http://cloudify-tests-files.s3.amazonaws.com/docl-images/docl-manager.sha1'  # noqa
 
+MANAGER_ENV = '/opt/manager/env/bin'
+MGMTWORKER_ENV = '/opt/mgmtworker/env/bin'
+
 
 EXPOSE = (22, 80, 443, 5671, 5672, 15672, 9200, 5432, 8086, 9999)
 PUBLISH = ()

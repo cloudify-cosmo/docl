@@ -371,6 +371,20 @@ def build_agent(container_id=None):
 
 
 @command
+def install_ipython(container_id=None):
+    logger.info('Installing ipython...')
+    container_id = container_id or work.last_container_id
+    logger.info('yum installing gcc and python-devel')
+    quiet_docker('exec', container_id, 'yum', 'install',
+                 '-y', 'gcc', 'python-devel')
+    for env in (constants.MANAGER_ENV, constants.MGMTWORKER_ENV):
+        logger.info('pip installing in {0}'.format(env))
+        pip = path(env) / 'pip'
+        quiet_docker('exec', container_id, pip, 'install', 'ipython')
+    logger.info('Done')
+
+
+@command
 def watch(container_id=None, rebuild_agent=False, interval=2):
     container_id = container_id or work.last_container_id
     services_to_restart = set()
