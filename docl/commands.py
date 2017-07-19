@@ -185,6 +185,10 @@ def _run_container_preparation_scripts(container_id, skip_agent_prepare):
 
 @command
 def pull_image(no_progress=False):
+    # try contacting the docker daemon first, to break early if it's not
+    # reachable - before the long download
+    quiet_docker.version()
+
     online_sha1 = requests.get(
         configuration.manager_image_commit_sha_url).text.strip()
     local_sha1 = work.last_pulled_image_commit_sha1
