@@ -19,7 +19,7 @@ from setuptools import setup
 
 setup(
     name='docl',
-    version='0.48',
+    version='0.49',
     author='GigaSpaces',
     author_email='cosmo-admin@gigaspaces.com',
     packages=[
@@ -30,11 +30,12 @@ setup(
     license='Apache License, Version 2.0',
     zip_safe=False,
     install_requires=[
-        'argh',
+        'argh==0.26.2',
         'sh==1.11',
         'path.py==8.1.2',
-        'watchdog>=0.8.3',
-        'FileServer'
+        'watchdog==0.8.3',
+        'pyyaml==3.10',
+        'FileServer==0.3'
     ],
     include_package_data=True,
     entry_points={
