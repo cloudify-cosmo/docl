@@ -233,17 +233,19 @@ def run(mount=False, label=None, name=None, details_path=None, tag=None):
                                                 details_path=details_path)
     _ssh_setup(container_id, container_ip)
 
-    max_retries, interval = 300, 0.1
-    for _ in range(max_retries):
+    _retry(_get_credentials_and_use_manager, container_id, container_ip)
+    _update_container(container_id, container_ip)
+
+
+def _retry(func, *args, **kwargs):
+    for _ in range(300):
         try:
-            _get_credentials_and_use_manager(container_id, container_ip)
+            func(*args, **kwargs)
             break
         except sh.ErrorReturnCode:
-            sleep(interval)
+            sleep(0.1)
     else:
         raise
-
-    _update_container(container_id, container_ip)
 
 
 def _get_credentials_and_use_manager(container_id, container_ip):
@@ -504,7 +506,7 @@ def _create_base_container(label, details_path, tag):
     container_id, container_ip = _run_container(docker_tag=docker_tag,
                                                 details_path=details_path,
                                                 label=label)
-    quiet_docker('exec', container_id, 'systemctl', 'start', 'dbus')
+    _retry(quiet_docker, 'exec', container_id, 'systemctl', 'start', 'dbus')
     return container_id, container_ip
 
 
