@@ -25,7 +25,6 @@ AGENT_TEMPLATE_DIR = '/opt/agent-template'
 AGENT_STUB_SERVICE = 'agent-service'
 DOCL_HOME_ENV_VAR = 'DOCL_HOME'
 PREPARE_SAVE_IMAGE_TARGET_PATH = '/root/prepare_save_image.py'
-PY_SCRIPT_TARGET_PATH = '/root/update_running_system.py'
 DATA_JSON_TARGET_PATH = '/root/data.json'
 CREDENTIALS_TARGET_PATH = '/root/test_credentials.json'
 BUFFER_SIZE = 1024 * 64
