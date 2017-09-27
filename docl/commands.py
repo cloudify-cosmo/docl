@@ -552,6 +552,10 @@ def _ssh_setup(container_id, container_ip):
         f.flush()
         quiet_docker.cp(f.name, '{}:/root/.ssh/authorized_keys'.format(
             container_id))
+    # due to a bug in docker 17.06, the file keeps ownership and is not
+    # chowned to the main container user automatically
+    quiet_docker('exec', container_id, 'chown', 'root:root',
+                 '/root/.ssh/authorized_keys')
 
 
 def _cfy_bootstrap(inputs, cfy_args):
