@@ -582,7 +582,10 @@ def _write_config(container_ip, config_path):
         'manager': {
             'public_ip': container_ip,
             'private_ip': container_ip,
-            'set_manager_ip_on_boot': True
+            'set_manager_ip_on_boot': True,
+            'security': {
+                'admin_password': 'admin'
+            }
         }
     }))
 
