@@ -28,7 +28,6 @@ class Configuration(object):
     def save(self,
              docker_host,
              ssh_key_path,
-             simple_manager_blueprint_path,
              clean_image_docker_tag,
              manager_image_docker_tag,
              source_root,
@@ -44,7 +43,6 @@ class Configuration(object):
         workdir = workdir or self.conf_dir / 'work'
         workdir = path(workdir).expanduser().abspath()
         conf.write_text(yaml.safe_dump({
-            'simple_manager_blueprint_path': str(simple_manager_blueprint_path),  # noqa
             'ssh_key_path': str(ssh_key_path),
             'docker_host': docker_host,
             'clean_image_docker_tag': clean_image_docker_tag,
@@ -88,10 +86,6 @@ class Configuration(object):
     @property
     def ssh_key_path(self):
         return path(self.conf.get('ssh_key_path'))
-
-    @property
-    def simple_manager_blueprint_path(self):
-        return path(self.conf.get('simple_manager_blueprint_path'))
 
     @property
     def clean_image_docker_tag(self):

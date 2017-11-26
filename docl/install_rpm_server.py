@@ -13,10 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import requests
 from contextlib import contextmanager
+from requests.exceptions import ConnectionError
 
 import sh
 import os
+import yaml
+from time import sleep
 
 from docl import files
 from docl.configuration import configuration
@@ -27,10 +31,10 @@ from docl.subprocess import serve
 
 @contextmanager
 def with_server(invalidate_cache, no_progress=False):
-    process, local_resources_url = start(invalidate_cache=invalidate_cache,
-                                         no_progress=no_progress)
+    process, local_rpm_url = start(invalidate_cache=invalidate_cache,
+                                   no_progress=no_progress)
     try:
-        yield local_resources_url
+        yield local_rpm_url
     finally:
         process.kill()
         try:
@@ -40,8 +44,8 @@ def with_server(invalidate_cache, no_progress=False):
 
 
 def start(invalidate_cache=False, no_progress=False):
-    if invalidate_cache or not work.cached_resources_tar_path.exists():
-        _download_resources_tar(no_progress=no_progress)
+    if invalidate_cache or not work.cached_install_rpm_path.exists():
+        _download_install_rpm(no_progress=no_progress)
     return _serve()
 
 
@@ -57,31 +61,45 @@ def get_host():
 def _serve():
     host = get_host()
     port = 9797
-    local_resources_url = 'http://{}:{}/{}'.format(
-        host, port, work.cached_resources_tar_path.basename())
+    local_rpm_url = 'http://{}:{}/{}'.format(
+        host, port, work.cached_install_rpm_path.basename())
     process = serve(work.dir, host=host, port=port, _bg=True)
-    logger.info('Resources tar available at {}'.format(local_resources_url))
-    return process, local_resources_url
+    logger.info('Install RPM available at {}'.format(local_rpm_url))
+    _wait_for_file_server(local_rpm_url)
+    return process, local_rpm_url
 
 
-def _download_resources_tar(no_progress):
-    resources_local_path = work.cached_resources_tar_path
-    if resources_local_path.exists():
-        resources_local_path.unlink()
-    resources_url = _get_resources_url()
-    logger.info('Downloading resources tar from {}. This might take a '
-                'while'.format(resources_url))
-    files.download(url=resources_url,
-                   output_path=resources_local_path,
+def _wait_for_file_server(url, max_retries=300):
+    while max_retries:
+        sleep(0.1)
+        max_retries -= 1
+        try:
+            result = requests.head(url)
+            if result.status_code == 200:
+                return
+        except ConnectionError:
+            pass
+    raise StandardError('Could not download requested URL: {0}'.format(url))
+
+
+def _download_install_rpm(no_progress):
+    rpm_local_path = work.cached_install_rpm_path
+    if rpm_local_path.exists():
+        rpm_local_path.unlink()
+    rpm_url = get_rpm_url()
+    logger.info('Downloading install RPM from {}. This might take a '
+                'while'.format(rpm_url))
+    files.download(url=rpm_url,
+                   output_path=rpm_local_path,
                    no_progress=no_progress)
 
 
-def _get_resources_url():
-    single_tar_path_yaml = os.path.join(
+def get_rpm_url():
+    rpm_path_yaml = os.path.join(
         configuration.source_root,
         'cloudify-premium',
         'packages-urls',
-        'manager-single-tar.yaml'
+        'manager-install-rpm.yaml'
     )
-    with open(single_tar_path_yaml, 'r') as f:
-        return f.read().strip()
+    with open(rpm_path_yaml, 'r') as f:
+        return yaml.load(f)

@@ -35,7 +35,7 @@ from cloudify_cli import env as cli_env
 
 from docl import constants
 from docl import resources
-from docl import resources_server
+from docl import install_rpm_server
 from docl import files
 from docl.configuration import configuration
 from docl.work import work
@@ -53,9 +53,7 @@ command = app
 
 
 @command
-@argh.arg('--simple-manager-blueprint-path', required=True)
-def init(simple_manager_blueprint_path=None,
-         docker_host=constants.DOCKER_HOST,
+def init(docker_host=constants.DOCKER_HOST,
          ssh_key_path=constants.SSH_KEY,
          clean_image_docker_tag=constants.CLEAN_IMAGE_DOCKER_TAG,
          manager_image_docker_tag=constants.MANAGER_IMAGE_DOCKER_TAG,
@@ -64,19 +62,12 @@ def init(simple_manager_blueprint_path=None,
          reset=False,
          debug_ip=None):
     ssh_key_path = path(ssh_key_path).expanduser()
-    simple_manager_blueprint_path = path(
-        simple_manager_blueprint_path).expanduser()
-    required_files = {
-        simple_manager_blueprint_path: 'You must specify a path '
-                                       'to a simple manager blueprint',
-        ssh_key_path: 'You need to create a key (see man ssh-keygen) first',
-    }
-    for required_file, message in required_files.items():
-        if not required_file.isfile():
-            raise argh.CommandError(message)
+    if not ssh_key_path.isfile():
+        raise argh.CommandError(
+            'You need to create a key (see man ssh-keygen) first'
+        )
     configuration.save(
         docker_host=docker_host,
-        simple_manager_blueprint_path=simple_manager_blueprint_path.abspath(),
         ssh_key_path=ssh_key_path.abspath(),
         clean_image_docker_tag=clean_image_docker_tag,
         manager_image_docker_tag=manager_image_docker_tag,
@@ -91,8 +82,8 @@ def init(simple_manager_blueprint_path=None,
 
 @command
 @argh.arg('-l', '--label', action='append')
-def prepare(inputs_output=None, label=None, details_path=None, tag=None):
-    inputs_output = inputs_output or constants.INPUTS_YAML
+def prepare(config_output=None, label=None, details_path=None, tag=None):
+    config_output = config_output or constants.CONFIG_YAML
     container_id, container_ip = _create_base_container(
         label=label,
         details_path=details_path,
@@ -100,7 +91,8 @@ def prepare(inputs_output=None, label=None, details_path=None, tag=None):
     logger.info('Container {0} started on ip {1}'
                 .format(container_id, container_ip))
     _ssh_setup(container_id=container_id, container_ip=container_ip)
-    _write_inputs(container_ip=container_ip, inputs_path=inputs_output)
+    _write_config(container_ip=container_ip, config_path=config_output)
+    return container_id, container_ip
 
 
 @command
@@ -108,26 +100,44 @@ def prepare(inputs_output=None, label=None, details_path=None, tag=None):
 @argh.arg('-l', '--label', action='append')
 def bootstrap(inputs=None, label=None, details_path=None, tag=None,
               container_id=None,
-              serve_resources_tar=False,
-              serve_resources_tar_invalidate_cache=False,
-              serve_resources_tar_no_progress=False,
-              cfy_args=None):
+              serve_install_rpm=False,
+              serve_install_rpm_invalidate_cache=False,
+              serve_install_rpm_no_progress=False):
     inputs = inputs or []
     with tempfile.NamedTemporaryFile() as f:
         if not container_id:
-            prepare(inputs_output=f.name,
-                    label=label,
-                    details_path=details_path,
-                    tag=tag)
+            container_id, _ = prepare(config_output=f.name,
+                                      label=label,
+                                      details_path=details_path,
+                                      tag=tag)
             inputs.insert(0, f.name)
-        if serve_resources_tar:
-            with resources_server.with_server(
-                    invalidate_cache=serve_resources_tar_invalidate_cache,
-                    no_progress=serve_resources_tar_no_progress) as url:
-                inputs.append('manager_resources_package={}'.format(url))
-                _cfy_bootstrap(inputs=inputs, cfy_args=cfy_args)
+        if serve_install_rpm:
+            with install_rpm_server.with_server(
+                    invalidate_cache=serve_install_rpm_invalidate_cache,
+                    no_progress=serve_install_rpm_no_progress) as url:
+                _install_manager(container_id, config_path=f.name, rpm_url=url)
         else:
-            _cfy_bootstrap(inputs=inputs, cfy_args=cfy_args)
+            _install_manager(container_id, config_path=f.name)
+
+
+def _install_manager(container_id, config_path, rpm_url=None):
+    rpm_url = rpm_url or install_rpm_server.get_rpm_url()
+    logger.info('Downloading install RPM from: {0}'.format(rpm_url))
+    exc(
+        'curl {0} -o {1}'.format(rpm_url, constants.INSTALL_RPM_PATH),
+        container_id
+    )
+    logger.info('Installing RPM...')
+    exc(
+        'yum install -y {0}'.format(constants.INSTALL_RPM_PATH),
+        container_id
+    )
+    logger.info('Removing install RPM...')
+    exc('rm {0}'.format(constants.INSTALL_RPM_PATH))
+    logger.info('Copying configuration...')
+    cp(config_path, ':/opt/cloudify-manager-install/config.yaml')
+    logger.info('Installing Cloudify Manager...')
+    exc('cfy_manager install', container_id)
 
 
 @command
@@ -169,11 +179,7 @@ def _run_container_preparation_scripts(container_id, skip_agent_prepare):
         'data_json_path': constants.DATA_JSON_TARGET_PATH,
         'skip_agent_prepare': skip_agent_prepare,
         'agent_template_dir': constants.AGENT_TEMPLATE_DIR,
-        'agent_package_path': configuration.agent_package_path,
-        'credentials_path': constants.CREDENTIALS_TARGET_PATH,
-        'admin_username': cli_env.get_username(),
-        'admin_password': cli_env.get_password(),
-        'admin_tenant': cli_env.get_tenant_name()
+        'agent_package_path': configuration.agent_package_path
     }
     docker('exec', container_id, 'python',
            constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
@@ -230,7 +236,8 @@ def run(mount=False, label=None, name=None, details_path=None, tag=None):
                                                 details_path=details_path)
     _ssh_setup(container_id, container_ip)
 
-    _retry(_get_credentials_and_use_manager, container_id, container_ip)
+    credentials = _get_manager_credentials(container_id)
+    _retry(_get_credentials_and_use_manager, credentials, container_ip)
     _update_container(container_id, container_ip)
 
 
@@ -245,19 +252,31 @@ def _retry(func, *args, **kwargs):
         raise
 
 
-def _get_credentials_and_use_manager(container_id, container_ip):
+def _get_manager_credentials(container_id):
+    """ Read the cloudify CLI profile context from the container """
+
     result = quiet_docker(
         'exec',
         container_id,
         'cat',
-        constants.CREDENTIALS_TARGET_PATH
+        constants.CLOUDIFY_CONTEXT_PATH
     )
-    credentials = json.loads(result.strip())
-    cfy.profiles.use(
-        container_ip,
-        manager_username=credentials['admin_username'],
-        manager_password=credentials['admin_password'],
-        manager_tenant=credentials['admin_tenant'],
+    context_str = result.strip()
+
+    # Getting rid of the first line, as it contains !CloudifyProfileContext
+    first_line_break = context_str.find('\n') + 1
+    context_str = context_str[first_line_break:]
+
+    return yaml.load(context_str)
+
+
+def _get_credentials_and_use_manager(credentials, container_ip):
+    cfy.profiles.use(container_ip, skip_credentials_validation=True)
+    # Using sh.cfy directly to avoid extra output
+    sh.cfy.profiles.set(
+        manager_username=credentials['manager_username'],
+        manager_password=credentials['manager_password'],
+        manager_tenant=credentials['manager_tenant'],
         ssh_user='root',
         ssh_key=configuration.ssh_key_path
     )
@@ -269,7 +288,7 @@ def _get_debug_ip():
     # If the debug IP was provided explicitly, it should supersede
     debug_ip = configuration.debug_ip
     if not debug_ip:
-        debug_ip = resources_server.get_host()
+        debug_ip = install_rpm_server.get_host()
     return debug_ip
 
 
@@ -440,9 +459,9 @@ def cp(source, target, container_id=None):
 
 
 @command
-def serve_resources_tar(invalidate_cache=False, no_progress=False):
-    with resources_server.with_server(invalidate_cache=invalidate_cache,
-                                      no_progress=no_progress):
+def serve_install_rpm(invalidate_cache=False, no_progress=False):
+    with install_rpm_server.with_server(invalidate_cache=invalidate_cache,
+                                        no_progress=no_progress):
         while True:
             try:
                 time.sleep(10)
@@ -558,32 +577,13 @@ def _ssh_setup(container_id, container_ip):
                  '/root/.ssh/authorized_keys')
 
 
-def _cfy_bootstrap(inputs, cfy_args):
-    cfy.init(r=True)
-    args = ['--inputs={}'.format(i) for i in inputs]
-    if cfy_args:
-        args += shlex.split(cfy_args)
-    try:
-        from cloudify_cli import env  # noqa
-        cfy.bootstrap(configuration.simple_manager_blueprint_path, *args)
-    except ImportError:
-        cfy_config_path = path('.cloudify') / 'config.yaml'
-        cfy_config = yaml.safe_load(cfy_config_path.text())
-        cfy_config['colors'] = True
-        cfy_config_path.write_text(yaml.safe_dump(cfy_config,
-                                                  default_flow_style=False))
-        cfy.bootstrap(
-            blueprint_path=configuration.simple_manager_blueprint_path, *args)
-
-
-def _write_inputs(container_ip, inputs_path):
-    path(inputs_path).write_text(yaml.safe_dump({
-        'public_ip': container_ip,
-        'private_ip': container_ip,
-        'ssh_user': 'root',
-        'ssh_key_filename': str(configuration.ssh_key_path),
-        'dsl_resources': [],
-        'set_manager_ip_on_boot': True
+def _write_config(container_ip, config_path):
+    path(config_path).write_text(yaml.safe_dump({
+        'manager': {
+            'public_ip': container_ip,
+            'private_ip': container_ip,
+            'set_manager_ip_on_boot': True
+        }
     }))
 
 

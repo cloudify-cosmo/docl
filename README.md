@@ -16,7 +16,6 @@ Note that `cloudify` CLI is a dependency of `docl`.
 ## Initial Configuration
 
 Run `docl init` and supply the different configuration options based on your setup.
-* `--simple-manager-blueprint-path` is mandatory and will be used when running `docl bootstrap`
 * `--ssh-key-path` should point to a private key that will have access to created containers.
 * `--docker-host` should point to the docker endpoint.
 * `--source-root` should point to the root directory in which all cloudify related projects are cloned. This is used for mounting code
@@ -27,14 +26,14 @@ Run `docl init` and supply the different configuration options based on your set
 After the initial configuration, most commands don't require any additional configuration to work with.
 
 ### `docl bootstrap`
-To bootstrap a manager a manager using the simple manager blueprint suppplied during initial configuration, simply run
+To bootstrap a manager a manager using an install RPM available in `cloudify-premium`, simply run
 
 
 ```
 docl bootstrap
 ```
 
-`bootstrap` accepts a `--serve-resources-tar` flag that will download the resources tar locally and will act as a local file server during the bootstrap process. The resources tar will not be re-downloaded if it already exists unless the invalidate cache flag (`--serve-resources-tar-invalidate-cache`) is supplied as well.
+`bootstrap` accepts a `--serve-install-rpm` flag that will download the install RPM locally and will act as a local file server during the bootstrap process. The install RPM will not be re-downloaded if it already exists unless the invalidate cache flag (`--serve-install-rpm-invalidate-cache`) is supplied as well.
 
 ### `docl prepare`
 If you want to bootstrap on your own, create an empty container (CentOS 7 with systemd and ssh enabled suitable for bootstrap), by 
@@ -44,7 +43,7 @@ running
 docl prepare
 ```
 
-This will start a container and generate an inputs file `inputs.yaml` that can be used to manually bootstrap the manager using the simple manager blueprint.
+This will start a container and generate a config file `config.yaml` that can be used to manually install a manager using an install RPM (copying the file to the container).
 
 ### `docl save-image`
 

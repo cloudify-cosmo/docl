@@ -36,8 +36,8 @@ class Work(object):
         return (self.dir / 'last_container_ip').text()
 
     @property
-    def cached_resources_tar_path(self):
-        return self.dir / 'cloudify-manager-resources.tar.gz'
+    def cached_install_rpm_path(self):
+        return self.dir / 'cloudify-manager-install.rpm'
 
     @property
     def pulled_image_path(self):

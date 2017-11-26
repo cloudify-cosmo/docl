@@ -51,16 +51,6 @@ def _prepare_agent_template(agent_template_dir, agent_package_path):
                                             agent_template_dir))
 
 
-def _save_credentials(params):
-    credentials = {
-        'admin_username': params['admin_username'],
-        'admin_password': params['admin_password'],
-        'admin_tenant': params['admin_tenant']
-    }
-    with open(params['credentials_path'], 'w') as f:
-        json.dump(credentials, f)
-
-
 def _install_pydevd():
     for venv in ['manager', 'mgmtworker']:
         pip = os.path.join('/opt', venv, 'env', 'bin', 'pip')
@@ -77,7 +67,6 @@ def main():
         _prepare_agent_template(agent_template_dir, agent_package_path)
     _write_to_files(data_json_path)
     _remove_old_json(data_json_path)
-    _save_credentials(params)
     _install_pydevd()
 
 

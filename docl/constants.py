@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-INPUTS_YAML = 'inputs.yaml'
+CONFIG_YAML = 'config.yaml'
 DOCKER_HOST = 'fd://'
 SSH_KEY = '~/.ssh/.id_rsa'
 CLEAN_IMAGE_DOCKER_TAG = 'cloudify/centos:7'
@@ -26,7 +26,8 @@ AGENT_STUB_SERVICE = 'agent-service'
 DOCL_HOME_ENV_VAR = 'DOCL_HOME'
 PREPARE_SAVE_IMAGE_TARGET_PATH = '/root/prepare_save_image.py'
 DATA_JSON_TARGET_PATH = '/root/data.json'
-CREDENTIALS_TARGET_PATH = '/root/test_credentials.json'
+CLOUDIFY_CONTEXT_PATH = '/root/.cloudify/profiles/localhost/context'
+INSTALL_RPM_PATH = '/root/cloudify-manager-install.rpm'
 BUFFER_SIZE = 1024 * 64
 MANAGER_IMAGE_URL = 'http://cloudify-tests-files.s3.amazonaws.com/docl-images/docl-manager.tar.gz'  # noqa
 MANAGER_IMAGE_COMMIT_SHA_URL = 'http://cloudify-tests-files.s3.amazonaws.com/docl-images/docl-manager.sha1'  # noqa
