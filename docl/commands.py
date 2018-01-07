@@ -249,7 +249,7 @@ def _retry(func, *args, **kwargs):
         except sh.ErrorReturnCode:
             sleep(0.1)
     else:
-        raise
+        raise argh.CommandError()
 
 
 def _get_manager_credentials(container_id):
