@@ -135,7 +135,7 @@ def _install_manager(container_id, config_path, rpm_url=None):
     logger.info('Removing install RPM...')
     exc('rm {0}'.format(constants.INSTALL_RPM_PATH))
     logger.info('Copying configuration...')
-    cp(config_path, ':/opt/cloudify/config.yaml')
+    cp(config_path, ':/etc/cloudify/config.yaml')
     logger.info('Installing Cloudify Manager...')
     exc('cfy_manager install', container_id)
 
@@ -249,7 +249,7 @@ def _retry(func, *args, **kwargs):
         except sh.ErrorReturnCode:
             sleep(0.1)
     else:
-        raise
+        raise argh.CommandError()
 
 
 def _get_manager_credentials(container_id):
