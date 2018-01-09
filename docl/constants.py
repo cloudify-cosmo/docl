@@ -170,7 +170,7 @@ RESOURCES = (
         'dst': '/opt/manager/resources/cloudify'
     },
     {
-        'src': 'cloudify-manager/plugins/riemann-controller/riemann_controller/resources/manager.config',  # noqa
+        'src': 'cloudify-manager/packaging/riemann/files/etc/riemann/conf.d/manager.config',  # noqa
         'dst': '/etc/riemann/conf.d/manager.config'
     },
 )
