@@ -586,6 +586,14 @@ def _write_config(container_ip, config_path):
             'security': {
                 'admin_password': 'admin'
             }
+        },
+        'usage_collector': {
+            'collect_cloudify_uptime': {
+                'active': False
+            },
+            'collect_cloudify_usage': {
+                'active': False
+            }
         }
     }))
 
