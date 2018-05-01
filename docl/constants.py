@@ -37,7 +37,6 @@ EXPOSE = (22, 80, 443, 5671, 5672, 15672, 9200, 5432, 8086, 9999)
 PUBLISH = ()
 
 SERVICES = (
-    'cloudify-amqpinflux',
     'cloudify-mgmtworker',
     'cloudify-restservice',
 )
