@@ -49,13 +49,13 @@ ALL_IP_SERVICES = SERVICES + (
 
 PACKAGE_DIR = {
     'amqp_influxdb': 'cloudify-amqp-influxdb',
-    'cloudify': 'cloudify-plugins-common',
+    'cloudify': 'cloudify-common',
     'cloudify_agent': 'cloudify-agent',
-    'cloudify_rest_client': 'cloudify-rest-client',
-    'dsl_parser': 'cloudify-dsl-parser',
+    'cloudify_rest_client': 'cloudify-common',
+    'dsl_parser': 'cloudify-common',
     'manager_rest': 'cloudify-manager/rest-service',
     'plugin_installer': 'cloudify-agent',
-    'script_runner': 'cloudify-script-plugin',
+    'script_runner': 'cloudify-common',
     'windows_agent_installer': 'cloudify-agent',
     'windows_plugin_installer': 'cloudify-agent',
     'worker_installer': 'cloudify-agent',
