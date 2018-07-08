@@ -312,8 +312,7 @@ def _update_container(container_id, container_ip):
 def install_docker(version=None, container_id=None):
     container_id = container_id or work.last_container_id
     try:
-        check_if_docker_installed = 'yum makecache fast; yum list installed docker*'
-        quiet_docker('exec', container_id, *check_if_docker_installed.split(' '))
+        quiet_docker('exec', container_id, *'which docker'.split(' '))
         logger.info('Docker already installed on container. Doing nothing')
         return
     except sh.ErrorReturnCode:
