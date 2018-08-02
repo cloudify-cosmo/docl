@@ -42,7 +42,6 @@ SERVICES = (
 )
 
 ALL_IP_SERVICES = SERVICES + (
-    'logstash',
     'cloudify-stage',
     'cloudify-riemann',
 )
