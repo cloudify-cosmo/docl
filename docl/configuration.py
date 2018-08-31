@@ -33,7 +33,9 @@ class Configuration(object):
              source_root,
              workdir,
              reset,
-             debug_ip):
+             debug_ip,
+             manager_image_url,
+             manager_image_commit_sha_url):
         if not self.conf_dir.exists():
             self.conf_dir.mkdir()
         conf = self.conf_dir / 'config.yaml'
@@ -58,9 +60,8 @@ class Configuration(object):
             'env_packages': constants.ENV_PACKAGES,
             'resources': constants.RESOURCES,
             'agent_package_path': constants.AGENT_PACKAGE_PATH,
-            'manager_image_url': constants.MANAGER_IMAGE_URL,
-            'manager_image_commit_sha_url':
-                constants.MANAGER_IMAGE_COMMIT_SHA_URL,
+            'manager_image_url': manager_image_url,
+            'manager_image_commit_sha_url': manager_image_commit_sha_url,
             'debug_ip': debug_ip
         }, default_flow_style=False))
 

@@ -53,10 +53,25 @@ command = app
 
 
 @command
-def init(docker_host=constants.DOCKER_HOST,
+@argh.arg(
+    '-u', '--manager-image-url',
+    help="Manager image URL. If specified, `docl pull-image` will download an "
+         "image from this URL.")
+@argh.arg(
+    '-m', '--manager-image-docker-tag',
+    help="Default Docker image tag to use (for example `docl run` with no "
+         "parameters will use this value to run a local image with this tag).")
+@argh.arg(
+    '-a', '--manager-image-commit-sha-url',
+    help="URL for the checksum of the provided Manager image file. Used to "
+         "prevent downloading the last image downloaded with `docl pull-image`"
+         ", again.")
+def init(manager_image_url=constants.MANAGER_IMAGE_URL,
+         manager_image_docker_tag=constants.MANAGER_IMAGE_DOCKER_TAG,
+         manager_image_commit_sha_url=constants.MANAGER_IMAGE_COMMIT_SHA_URL,
+         docker_host=constants.DOCKER_HOST,
          ssh_key_path=constants.SSH_KEY,
          clean_image_docker_tag=constants.CLEAN_IMAGE_DOCKER_TAG,
-         manager_image_docker_tag=constants.MANAGER_IMAGE_DOCKER_TAG,
          source_root=constants.SOURCE_ROOT,
          workdir=None,
          reset=False,
@@ -74,7 +89,9 @@ def init(docker_host=constants.DOCKER_HOST,
         source_root=source_root,
         workdir=workdir,
         reset=reset,
-        debug_ip=debug_ip)
+        debug_ip=debug_ip,
+        manager_image_url=manager_image_url,
+        manager_image_commit_sha_url=manager_image_commit_sha_url)
     logger.info('Configuration is saved to {}. Feel free to change it to your '
                 'liking.'.format(configuration.conf_path))
     work.init()
@@ -102,7 +119,8 @@ def bootstrap(inputs=None, label=None, details_path=None, tag=None,
               container_id=None,
               serve_install_rpm=False,
               serve_install_rpm_invalidate_cache=False,
-              serve_install_rpm_no_progress=False):
+              serve_install_rpm_no_progress=False,
+              rpm_url=None):
     inputs = inputs or []
     with tempfile.NamedTemporaryFile() as f:
         if not container_id:
@@ -117,7 +135,7 @@ def bootstrap(inputs=None, label=None, details_path=None, tag=None,
                     no_progress=serve_install_rpm_no_progress) as url:
                 _install_manager(container_id, config_path=f.name, rpm_url=url)
         else:
-            _install_manager(container_id, config_path=f.name)
+            _install_manager(container_id, config_path=f.name, rpm_url=rpm_url)
 
 
 def _install_manager(container_id, config_path, rpm_url=None):

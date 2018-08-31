@@ -20,6 +20,10 @@ Run `docl init` and supply the different configuration options based on your set
 * `--docker-host` should point to the docker endpoint.
 * `--source-root` should point to the root directory in which all cloudify related projects are cloned. This is used for mounting code
   from the host machine to the relevant manager directories.
+* (Optional) `[-m]|[--manager-image-docker-tag]` Default Docker image tag to use (for example `docl run` with no parameters will use this value to run a local image with this tag).
+* (Optional) `[-u]|[--manager-image-url]` URL to the docker manager image. This must be set when using a dev feature. This will download the specified image when running `docl pull-image`.
+* (Optional, for a development branch) `[-a]|[--manager-image-commit-sha-url]` URL to the `sha1` checksum. This can save time if specified image already downloaded when 
+the `--manager-image-url` is set. 
 
 ## Usage
 
@@ -66,6 +70,11 @@ To pull the latest built image from S3 (instead of running `bootstrap` and then 
 docl pull-image
 ```
 
+Using a dev branch:
+1. You must run `docl init ... [-u]|[--manager-image-url] <URL_OF_DOCL_IMAGE> [[-a]|[--manager-image-commit-sha-url] <CHECKSUM_URL_OF_DOCL_IMAGE>]`
+2. Run `docl pull-image`
+
+_Note: if `--manager-image-url` has been set at `docl init` then `docl` will download the image located at the `manager-image-url` URL provided._
 
 ### `docl run`
 
