@@ -199,9 +199,13 @@ def _run_container_preparation_scripts(container_id, skip_agent_prepare):
         'agent_template_dir': constants.AGENT_TEMPLATE_DIR,
         'agent_package_path': configuration.agent_package_path
     }
-    docker('exec', container_id, 'python',
-           constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
-           base64.b64encode(json.dumps(params)))
+    output = docker('exec', container_id, 'python',
+                    constants.PREPARE_SAVE_IMAGE_TARGET_PATH,
+                    base64.b64encode(json.dumps(params)))
+
+    # The last line printed by the script is the location of cfy_manager dir
+    cfy_manager_location = output.strip().split('\n')[-1]
+    configuration.update_cfy_manager_location(cfy_manager_location)
 
 
 @command
@@ -506,6 +510,9 @@ def _build_volumes():
             volumes[dst] = '{}:{}:ro'.format(src, dst)
     for resource in configuration.resources:
         dst = resource['dst']
+        # Might not be declared yet (e.g. cfy_manager)
+        if not dst:
+            continue
         if resource.get('write'):
             permissions = 'rw'
         else:

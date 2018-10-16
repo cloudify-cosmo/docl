@@ -65,6 +65,18 @@ class Configuration(object):
             'debug_ip': debug_ip
         }, default_flow_style=False))
 
+    def update_cfy_manager_location(self, new_location):
+        # Load config once, to retain values throughout the method
+        conf = self.conf
+        resources = conf['resources']
+        for resource in resources:
+            if resource['src'] == 'cloudify-manager-install/cfy_manager':
+                resource['dst'] = new_location
+                break
+        self.conf_path.write_text(
+            yaml.safe_dump(conf, default_flow_style=False)
+        )
+
     @property
     def conf_dir(self):
         return path(os.environ.get(constants.DOCL_HOME_ENV_VAR,
