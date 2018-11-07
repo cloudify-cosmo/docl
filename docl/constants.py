@@ -63,7 +63,8 @@ PACKAGE_DIR = {
     'riemann_controller': 'cloudify-manager/plugins/riemann-controller',
     'diamond_agent': 'cloudify-diamond-plugin',
     'cloudify_handler': 'cloudify-diamond-plugin',
-    'cloudify_premium': 'cloudify-premium'
+    'cloudify_premium': 'cloudify-premium',
+    'amqp_postgres': 'cloudify-manager/amqp-postgres'
 }
 
 PACKAGE_SERVICES = {
@@ -135,6 +136,7 @@ ENV_PACKAGES = {
         'worker_installer',
         'flask_securest',
         'cloudify_premium',
+        'amqp_postgres'
     ),
     'mgmtworker': (
         'cloudify',
