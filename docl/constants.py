@@ -39,6 +39,7 @@ PUBLISH = ()
 SERVICES = (
     'cloudify-mgmtworker',
     'cloudify-restservice',
+    'cloudify-amqp-postgres'
 )
 
 ALL_IP_SERVICES = SERVICES + (
