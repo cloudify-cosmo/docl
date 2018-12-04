@@ -2,7 +2,27 @@
 
 ## Prerequisites
 * Docker should be installed and running. It should be started with root privileges because containers are started with the `--privileged` flag.
-* Docker should be accesible on tcp (as opposed to the default unix socket) - [example here]( https://coreos.com/os/docs/latest/customizing-docker.html).
+
+### TCP socket configuration
+Docker should be also accessible on tcp along with the default unix socket, to achieve this:
+* Create the file `/etc/systemd/system/docker.service.d/startup_options.conf` (if required create the parent directory)
+* Input the below contents:
+```
+# /etc/systemd/system/docker.service.d/override.conf
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd -H unix:// -H tcp://0.0.0.0:2375
+```
+* Run:
+```
+sudo systemctl daemon-reload
+sudo systemctl restart docker.service
+```
+* Validate docker listens on the unix socket and the tcp socket (both commands should print the installed docker version):
+```
+docker -H tcp://127.0.0.1:2375 version
+sudo docker version
+```  
 
 ## Installation
 `docl` can be installed by running 
