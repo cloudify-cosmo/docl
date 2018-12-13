@@ -341,24 +341,12 @@ def install_docker(version=None, container_id=None):
         pass
     cp(resources.DIR / 'docker.repo', ':/etc/yum.repos.d/docker.repo',
        container_id=container_id)
-    version = version or _get_docker_version()
-    install_docker_command = 'yum install -y -q docker-engine-{}'.format(
-        version)
+    if version:
+        install_docker_command = 'yum install -y -q docker-ce-{}'.format(
+            version)
+    else:
+        install_docker_command = 'yum install -y -q docker-ce'
     docker('exec', container_id, *install_docker_command.split(' '))
-
-
-def _get_docker_version():
-    try:
-        version = quiet_docker.version('-f', '{{.Client.Version}}').strip()
-    except sh.ErrorReturnCode as e:
-        version = e.stdout.strip()
-
-    # Replacing the -ce in the version with .ce, as the versions in
-    # https://yum.dockerproject.org/repo/main/centos/7/Packages/
-    # adhere to this notation
-    if version.endswith('-ce'):
-        version = version.replace('-ce', '.ce')
-    return version
 
 
 @command
