@@ -149,7 +149,6 @@ ENV_PACKAGES = {
         'windows_agent_installer',
         'windows_plugin_installer',
         'worker_installer',
-        'riemann_controller',
     ),
     'agent-template': (
         'cloudify',
