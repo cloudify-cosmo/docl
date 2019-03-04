@@ -171,10 +171,6 @@ RESOURCES = (
         'dst': '/opt/manager/resources/cloudify'
     },
     {
-        'src': 'cloudify-manager/packaging/riemann/files/etc/riemann/conf.d/manager.config',  # noqa
-        'dst': '/etc/riemann/conf.d/manager.config'
-    },
-    {
         'src': 'cloudify-manager-install/cfy_manager',
         # Will be filled later by save-image
         'dst': ''
