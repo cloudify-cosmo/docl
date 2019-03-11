@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2016 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2016-2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ from setuptools import setup
 
 setup(
     name='docl',
-    version='0.49',
-    author='GigaSpaces',
-    author_email='cosmo-admin@gigaspaces.com',
+    version='0.50',
+    author='Cloudify',
+    author_email='cosmo-admin@cloudify.co',
     packages=[
         'docl',
         'docl.resources',

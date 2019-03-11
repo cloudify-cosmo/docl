@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2016 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2016-2019 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,6 @@ SERVICES = (
 
 ALL_IP_SERVICES = SERVICES + (
     'cloudify-stage',
-    'cloudify-riemann',
 )
 
 PACKAGE_DIR = {
@@ -60,8 +59,8 @@ PACKAGE_DIR = {
     'windows_plugin_installer': 'cloudify-agent',
     'worker_installer': 'cloudify-agent',
     'cloudify_system_workflows': 'cloudify-manager/workflows',
+    'cloudify_types': 'cloudify-manager/cloudify_types',
     'flask_securest': 'flask-securest',
-    'riemann_controller': 'cloudify-manager/plugins/riemann-controller',
     'diamond_agent': 'cloudify-diamond-plugin',
     'cloudify_handler': 'cloudify-diamond-plugin',
     'cloudify_premium': 'cloudify-premium',
@@ -114,7 +113,7 @@ PACKAGE_SERVICES = {
         AGENT_STUB_SERVICE
     ),
     'cloudify_system_workflows': ('cloudify-mgmtworker',),
-    'riemann_controller': ('cloudify-mgmtworker',),
+    'cloudify_types': ('cloudify-mgmtworker',),
     'flask_securest': ('cloudify-restservice',),
     'diamond_agent': (AGENT_STUB_SERVICE,),
     'cloudify_handler': (AGENT_STUB_SERVICE,),
@@ -143,12 +142,13 @@ ENV_PACKAGES = {
         'cloudify',
         'cloudify_agent',
         'cloudify_system_workflows',
+        'cloudify_types',
         'cloudify_rest_client',
         'plugin_installer',
         'script_runner',
         'windows_agent_installer',
         'windows_plugin_installer',
-        'worker_installer',
+        'worker_installer'
     ),
     'agent-template': (
         'cloudify',
