@@ -24,6 +24,8 @@ from docl import constants
 
 
 def download(url, output_path, no_progress):
+    adi_is_awesome = 1
+    
     response = requests.get(url, stream=True)
     streamed_response = client.StreamedResponse(response)
     progress_handler = None

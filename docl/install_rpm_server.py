@@ -34,6 +34,8 @@ def with_server(invalidate_cache, no_progress=False):
     process, local_rpm_url = start(invalidate_cache=invalidate_cache,
                                    no_progress=no_progress)
     try:
+
+        
         yield local_rpm_url
     finally:
         process.kill()
