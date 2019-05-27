@@ -176,3 +176,18 @@ For example, to copy `/tmp/some_file` from the host machine to a container on `/
 ```
 docl cp /tmp/some_file :/root/configuration.txt
 ```
+
+
+### Troubleshooting
+
+Ubuntu Trusty 14.04 may fail with an error containing:
+
+```bash
+OCI runtime create failed: container_linux.go:348: starting container process caused "process_linux.go:297: copying bootstrap data to pipe caused \"write init-p: broken pipe\"": unknown
+```
+
+In this case the solution is to downgrade docker:
+
+```bash
+apt-get -y install --force-yes docker-ce=18.06.1~ce~3-0~ubuntu
+```
