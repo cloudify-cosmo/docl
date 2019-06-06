@@ -1,7 +1,7 @@
 # docl
 
 ## Prerequisites
-* Docker should be installed and running. It should be started with root privileges because containers are started with the `--privileged` flag.
+* Docker should be installed and running.
 
 ## Installation
 `docl` can be installed by running 
