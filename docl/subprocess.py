@@ -33,7 +33,9 @@ def bake(cmd):
 
 
 def docker_proxy(quiet=False):
-    result = sh.docker.bake('-H', configuration.docker_host)
+    result = sh.docker
+    if configuration.docker_host:
+        result = result.bake('-H', configuration.docker_host)
     if not quiet:
         result = bake(result)
     return result

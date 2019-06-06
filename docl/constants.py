@@ -14,7 +14,6 @@
 # limitations under the License.
 
 CONFIG_YAML = 'config.yaml'
-DOCKER_HOST = 'fd://'
 SSH_KEY = '~/.ssh/.id_rsa'
 CLEAN_IMAGE_DOCKER_TAG = 'cloudify/centos:7'
 MANAGER_IMAGE_DOCKER_TAG = 'cloudify/centos-manager:7'
