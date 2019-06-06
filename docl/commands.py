@@ -249,9 +249,12 @@ def remove_image(tag=None):
 @command
 @argh.arg('-l', '--label', action='append')
 @argh.arg('-n', '--name')
-def run(mount=False, label=None, name=None, details_path=None, tag=None):
+def run(mount=False, label=None, name=None, details_path=None, tag=None,
+        mount_docker=False):
     docker_tag = tag or configuration.manager_image_docker_tag
-    volumes = _build_volumes() if mount else None
+    volumes = _build_volumes() if mount else []
+    if mount_docker:
+        volumes += _mount_docker_volumes()
     container_id, container_ip = _run_container(docker_tag=docker_tag,
                                                 volume=volumes,
                                                 label=label,
@@ -262,6 +265,33 @@ def run(mount=False, label=None, name=None, details_path=None, tag=None):
     credentials = _get_manager_credentials(container_id)
     _retry(_get_credentials_and_use_manager, credentials, container_ip)
     _update_container(container_id, container_ip)
+
+
+def _mount_docker_volumes():
+    """Volume configuration for mounting the docker socket.
+
+    This allows mounting the docker socket (if specified in docker_host,
+    or /var/run/docker.sock by default).
+    Systemd will clean /var/run on startup, so this mounts the socket
+    in /tmp, and provides a systemd unit that links that to /var/run.
+
+    Returns a list of arguments to be used with --volume in docker run.
+    """
+    docker_host = configuration.docker_host
+    if docker_host and not docker_host.startswith('unix:'):
+        raise argh.CommandError('Mounting the docker socket is only possible '
+                                'when docker_host is a unix socket (and '
+                                'starts with unix://), but was {0}'
+                                .format(configuration.docker_host))
+    docker_host = docker_host.replace('unix://', '')
+    copy_service_path = ('/etc/systemd/system/multi-user.target.wants'
+                         '/link-docker-socket.service')
+
+    return [
+        '{0}:{1}'.format(resources.DIR / 'link-docker-socket.service',
+                         copy_service_path),
+        '{0}:/tmp/docker.sock'.format(docker_host)
+    ]
 
 
 def _retry(func, *args, **kwargs):
