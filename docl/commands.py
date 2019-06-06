@@ -276,16 +276,14 @@ def _mount_docker_volumes():
 
     Returns a list of arguments to be used with --volume in docker run.
     """
-    docker_host = configuration.docker_host
-    if docker_host and not docker_host.startswith('unix:'):
+    docker_host = configuration.docker_host or 'unix:///var/run/docker.sock'
+    if not docker_host.startswith('unix:'):
         raise argh.CommandError('Mounting the docker socket is only possible '
                                 'when docker_host is a unix socket (and '
                                 'starts with unix://), but was {0}'
                                 .format(configuration.docker_host))
-    if docker_host:
-        docker_host = docker_host.replace('unix://', '')
-    else:
-        docker_host = '/var/run/docker.sock'
+
+    docker_host = docker_host.replace('unix://', '')
     copy_service_path = ('/etc/systemd/system/multi-user.target.wants'
                          '/link-docker-socket.service')
 
