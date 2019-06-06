@@ -390,11 +390,18 @@ def restart_services(container_id=None):
 
 @command
 def ssh(container_id=None):
+    logger.warning('`docl ssh` is deprecated, use `docl shell` instead')
     if not container_id:
         container_ip = work.last_container_ip
     else:
         container_ip = _extract_container_ip(container_id)
     _ssh(container_ip, configuration.ssh_key_path)
+
+
+@command
+def shell(container_id=None):
+    container_id = container_id or work.last_container_id
+    docker('exec', '-it', container_id, '/bin/bash')
 
 
 @command

@@ -136,11 +136,19 @@ docl restart-services
 ```
 
 ### `docl ssh`
-To `ssh` into a container created by `docl`, run 
+To get a shell inside the container, run
+
+```
+docl shell
+```
+
+### `docl ssh`
+To `ssh` into a container created by `docl`, run
 
 ```
 docl ssh
 ```
+This command is deprecated. Use `docl shell` instead.
 
 ### `docl build-agent`
 If you want to create a new `centos` based agent package on a manager container that was started using `docl run --mount`, run
