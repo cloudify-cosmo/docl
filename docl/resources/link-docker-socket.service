@@ -3,7 +3,7 @@ Description=Link docker socket to the default location
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/ls -s /tmp/docker.sock /var/run/docker.sock
+ExecStart=/usr/bin/ln -s /tmp/docker.sock /var/run/docker.sock
 
 [Install]
 WantedBy=multi-user.target
