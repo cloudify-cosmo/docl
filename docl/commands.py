@@ -282,7 +282,10 @@ def _mount_docker_volumes():
                                 'when docker_host is a unix socket (and '
                                 'starts with unix://), but was {0}'
                                 .format(configuration.docker_host))
-    docker_host = docker_host.replace('unix://', '')
+    if docker_host:
+        docker_host = docker_host.replace('unix://', '')
+    else:
+        docker_host = '/var/run/docker.sock'
     copy_service_path = ('/etc/systemd/system/multi-user.target.wants'
                          '/link-docker-socket.service')
 
