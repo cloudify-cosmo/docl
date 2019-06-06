@@ -51,6 +51,8 @@ def start(invalidate_cache=False, no_progress=False):
 
 def get_host():
     host = configuration.docker_host
+    if not host:
+        return
     if '://' in host:
         host = host.split('://')[1]
     if ':' in host:
