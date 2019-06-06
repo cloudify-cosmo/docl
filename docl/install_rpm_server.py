@@ -51,8 +51,11 @@ def start(invalidate_cache=False, no_progress=False):
 
 def get_host():
     host = configuration.docker_host
-    if not host:
-        return
+    if not host or host.startswith('unix:'):
+        logger.warning('TCP docker_host address not provided (docker_host: '
+                       '`{0}`). Using 127.0.0.1 instead to serve the manager '
+                       'install RPM'.format(host))
+        return '127.0.0.1'
     if '://' in host:
         host = host.split('://')[1]
     if ':' in host:
