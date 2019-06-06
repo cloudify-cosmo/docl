@@ -390,12 +390,12 @@ def _allow_docker_sudo(container_id, user):
     the GID would be different than on the host, and so it still wouldn't
     allow the user to access the socket or other docker things.
     """
-    new_sudoers_line = '{0}    ALL=(root) NOPASSWD:/usr/bin/docker'
+    sudoers_line = '{0}    ALL=(root) NOPASSWD:/usr/bin/docker'.format(user)
     sudoers_file = '/etc/sudoers.d/{0}'.format(user)
     docker('exec', container_id, 'touch', sudoers_file)
     # sed command to add the line to the end of the file
     docker('exec', container_id, 'sed', '-ie',
-           '$a{0}'.format(new_sudoers_line), sudoers_file)
+           '$a{0}'.format(sudoers_line), sudoers_file)
 
 
 def _get_docker_version():
