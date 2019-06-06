@@ -3,27 +3,6 @@
 ## Prerequisites
 * Docker should be installed and running. It should be started with root privileges because containers are started with the `--privileged` flag.
 
-### TCP socket configuration
-Docker should be also accessible on tcp along with the default unix socket, to achieve this:
-* Create the file `/etc/systemd/system/docker.service.d/startup_options.conf` (if required create the parent directory)
-* Input the below contents:
-```
-# /etc/systemd/system/docker.service.d/override.conf
-[Service]
-ExecStart=
-ExecStart=/usr/bin/dockerd -H unix:// -H tcp://0.0.0.0:2375
-```
-* Run:
-```
-sudo systemctl daemon-reload
-sudo systemctl restart docker.service
-```
-* Validate docker listens on the unix socket and the tcp socket (both commands should print the installed docker version):
-```
-docker -H tcp://127.0.0.1:2375 version
-sudo docker version
-```  
-
 ## Installation
 `docl` can be installed by running 
 
@@ -37,7 +16,7 @@ Note that `cloudify` CLI is a dependency of `docl`.
 
 Run `docl init` and supply the different configuration options based on your setup.
 * `--ssh-key-path` should point to a private key that will have access to created containers.
-* `--docker-host` should point to the docker endpoint.
+* `--docker-host` should point to the docker endpoint, or empty for the default socket.
 * `--source-root` should point to the root directory in which all cloudify related projects are cloned. This is used for mounting code
   from the host machine to the relevant manager directories.
 * (Optional) `[-m]|[--manager-image-docker-tag]` Default Docker image tag to use (for example `docl run` with no parameters will use this value to run a local image with this tag).
@@ -186,8 +165,9 @@ docl cp /tmp/some_file :/root/configuration.txt
 ```
 
 
-### Troubleshooting
+## Troubleshooting
 
+### Docker version
 Ubuntu Trusty 14.04 may fail with an error containing:
 
 ```bash
@@ -198,4 +178,26 @@ In this case the solution is to downgrade docker:
 
 ```bash
 apt-get -y install --force-yes docker-ce=18.06.1~ce~3-0~ubuntu
+```
+
+### TCP socket configuration
+Docker can be also accessible on tcp along with the default unix socket (note that this is not required since 0.51).
+To achieve this:
+* Create the file `/etc/systemd/system/docker.service.d/startup_options.conf` (if required create the parent directory)
+* Input the below contents:
+```
+# /etc/systemd/system/docker.service.d/override.conf
+[Service]
+ExecStart=
+ExecStart=/usr/bin/dockerd -H unix:// -H tcp://0.0.0.0:2375
+```
+* Run:
+```
+sudo systemctl daemon-reload
+sudo systemctl restart docker.service
+```
+* Validate docker listens on the unix socket and the tcp socket (both commands should print the installed docker version):
+```
+docker -H tcp://127.0.0.1:2375 version
+sudo docker version
 ```
