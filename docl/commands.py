@@ -365,10 +365,12 @@ def _update_container(container_id, container_ip):
 
 
 @command
-def install_docker(version=None, container_id=None):
+def install_docker(version=None, container_id=None, sudo_user='cfyuser'):
     container_id = container_id or work.last_container_id
+    if sudo_user:
+        _allow_docker_sudo(container_id, sudo_user)
     try:
-        quiet_docker('exec', container_id, *'which docker'.split(' '))
+        quiet_docker('exec', container_id, 'which', 'docker')
         logger.info('Docker already installed on container. Doing nothing')
         return
     except sh.ErrorReturnCode:
@@ -376,6 +378,22 @@ def install_docker(version=None, container_id=None):
     version = version or _get_docker_version(container_id)
     install_docker_command = 'yum install -y -q {}'.format(version)
     docker('exec', container_id, *install_docker_command.split(' '))
+
+
+def _allow_docker_sudo(container_id, user):
+    """Allow user to sudo docker.
+
+    To use docker inside of the container, allow the user to sudo docker.
+    The usual way of creating a docker group is not very useful because
+    the GID would be different than on the host, and so it still wouldn't
+    allow the user to access the socket or other docker things.
+    """
+    new_sudoers_line = '{0}    ALL=(root) NOPASSWD:/usr/bin/docker'
+    sudoers_file = '/etc/sudoers.d/{0}'.format(user)
+    docker('exec', container_id, 'touch', sudoers_file)
+    # sed command to add the line to the end of the file
+    docker('exec', container_id, 'sed', '-ie',
+           '$a{0}'.format(new_sudoers_line), sudoers_file)
 
 
 def _get_docker_version(container_id=None):
