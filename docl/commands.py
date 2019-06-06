@@ -371,8 +371,11 @@ def install_docker(version=None, container_id=None, sudo_user='cfyuser'):
         return
     except sh.ErrorReturnCode:
         pass
-    version = version or _get_docker_version(container_id)
-    install_docker_command = 'yum install -y -q {}'.format(version)
+    cp(resources.DIR / 'docker.repo', ':/etc/yum.repos.d/docker.repo',
+       container_id=container_id)
+    version = version or _get_docker_version()
+    install_docker_command = 'yum install -y -q docker-client-{}'.format(
+        version)
     docker('exec', container_id, *install_docker_command.split(' '))
 
 
