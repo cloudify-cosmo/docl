@@ -583,12 +583,12 @@ def _run_container(docker_tag, volume=None, label=None, name=None,
         docker_args.append('--name={}'.format(name))
     container_id = quiet_docker.run(
         *docker_args +
-         ['--hostname={}'.format(hostname)] +
-         ['--expose={}'.format(e) for e in expose] +
-         ['--publish={}'.format(p) for p in publish] +
-         ['--volume={}'.format(v) for v in volume] +
-         ['--label={}'.format(l) for l in label] +
-         [docker_tag]).strip()
+        ['--hostname={}'.format(hostname)] +
+        ['--expose={}'.format(e) for e in expose] +
+        ['--publish={}'.format(p) for p in publish] +
+        ['--volume={}'.format(v) for v in volume] +
+        ['--label={}'.format(l) for l in label] +
+        [docker_tag]).strip()
     container_ip = _extract_container_ip(container_id)
     work.save_last_container_id_and_ip(container_id=container_id,
                                        container_ip=container_ip)
