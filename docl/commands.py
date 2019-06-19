@@ -401,7 +401,13 @@ def ssh(container_id=None):
 @command
 def shell(container_id=None):
     container_id = container_id or work.last_container_id
-    docker('exec', '-it', container_id, '/bin/bash')
+    # use os.execv so that docker gets the tty; there's no need for the
+    # python side to wait anyway
+    args = ['docker']
+    if configuration.docker_host:
+        args += ['-H', configuration.docker_host]
+    args += ['exec', '-it', container_id, '/bin/bash']
+    os.execv(sh.which('docker'), args)
 
 
 @command
