@@ -87,8 +87,12 @@ class Configuration(object):
         return self.conf_dir / 'config.yaml'
 
     @property
+    def initialized(self):
+        return self.conf_path.exists()
+
+    @property
     def conf(self):
-        if not self.conf_path.exists():
+        if not self.initialized:
             raise argh.CommandError('Not initialized. Run "docl init"')
         return yaml.safe_load(self.conf_path.text())
 

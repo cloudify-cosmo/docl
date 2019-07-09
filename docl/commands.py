@@ -53,6 +53,13 @@ app = argh.EntryPoint('docl')
 command = app
 
 
+def _last_container_id():
+    return quiet_docker.ps(
+        '--filter=status=running',
+        '--filter=ancestor={0}'.format(constants.MANAGER_IMAGE_DOCKER_TAG),
+        n=1, q=True).strip()
+
+
 @command
 @argh.arg(
     '-u', '--manager-image-url',
@@ -226,10 +233,10 @@ def remove_image(tag=None):
 @command
 @argh.arg('-l', '--label', action='append')
 @argh.arg('-n', '--name')
-def run(mount=False, label=None, name=None, details_path=None, tag=None,
+def run(mount='', label=None, name=None, details_path=None, tag=None,
         mount_docker=False):
-    docker_tag = tag or configuration.manager_image_docker_tag
-    volumes = _build_volumes() if mount else []
+    docker_tag = tag or constants.MANAGER_IMAGE_DOCKER_TAG
+    volumes = _build_volumes(mount) if mount else []
     if mount_docker:
         volumes += _mount_docker_volumes()
     container_id, container_ip = _run_container(docker_tag=docker_tag,
@@ -237,11 +244,40 @@ def run(mount=False, label=None, name=None, details_path=None, tag=None,
                                                 label=label,
                                                 name=name,
                                                 details_path=details_path)
-    _ssh_setup(container_id, container_ip)
-
     credentials = _get_manager_credentials(container_id)
     _retry(_get_credentials_and_use_manager, credentials, container_ip)
     _update_container(container_id, container_ip)
+
+
+def _build_volumes(basedir):
+    # resources should be able to override env packages which is why
+    # we use a dist based in the destination directory
+    volumes = {}
+    for env, packages in constants.ENV_PACKAGES.items():
+        for package in packages:
+            src = os.path.join(
+                basedir, constants.PACKAGE_DIR[package], package)
+            if not os.path.exists(src):
+                continue
+            dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
+                                                                      package)
+            volumes[dst] = '{}:{}:ro'.format(src, dst)
+    for resource in constants.RESOURCES:
+        dst = resource['dst']
+        # Might not be declared yet (e.g. cfy_manager)
+        if not dst:
+            continue
+        if resource.get('write'):
+            permissions = 'rw'
+        else:
+            permissions = 'ro'
+        src = resource['src']
+        if not path(src).isabs():
+            src = '{}/{}'.format(basedir, src)
+        if not os.path.exists(src):
+            continue
+        volumes[dst] = '{}:{}:{}'.format(src, dst, permissions)
+    return volumes.values()
 
 
 def _mount_docker_volumes():
@@ -308,8 +344,6 @@ def _get_credentials_and_use_manager(credentials, container_ip):
         manager_username=credentials['manager_username'],
         manager_password=credentials['manager_password'],
         manager_tenant=credentials['manager_tenant'],
-        ssh_user='root',
-        ssh_key=configuration.ssh_key_path
     )
     cli_env.profile = cli_env.get_profile_context(container_ip)
 
@@ -527,7 +561,7 @@ def watch(container_id=None, rebuild_agent=False, interval=2):
 @command
 @argh.named('exec')
 def exc(command, container_id=None):
-    container_id = container_id or work.last_container_id
+    container_id = container_id or _last_container_id()
     docker('exec', container_id, *shlex.split(command))
 
 
@@ -560,34 +594,6 @@ def _restart_service(container_id, service):
     quiet_docker('exec', container_id, 'systemctl', 'restart', service)
 
 
-def _build_volumes():
-    # resources should be able to override env packages which is why
-    # we use a dist based in the destination directory
-    volumes = {}
-    for env, packages in configuration.env_packages.items():
-        for package in packages:
-            src = '{}/{}/{}'.format(configuration.source_root,
-                                    configuration.package_dir[package],
-                                    package)
-            dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
-                                                                      package)
-            volumes[dst] = '{}:{}:ro'.format(src, dst)
-    for resource in configuration.resources:
-        dst = resource['dst']
-        # Might not be declared yet (e.g. cfy_manager)
-        if not dst:
-            continue
-        if resource.get('write'):
-            permissions = 'rw'
-        else:
-            permissions = 'ro'
-        src = resource['src']
-        if not path(src).isabs():
-            src = '{}/{}'.format(configuration.source_root, src)
-        volumes[dst] = '{}:{}:{}'.format(src, dst, permissions)
-    return volumes.values()
-
-
 def _create_base_container(label, details_path, tag):
     docker_tag = tag or configuration.clean_image_docker_tag
     docker.pull('cloudifyplatform/community:latest-centos7-base-image')
@@ -604,9 +610,9 @@ def _run_container(docker_tag, volume=None, label=None, name=None,
                    details_path=None):
     label = label or []
     volume = volume or []
-    expose = configuration.expose
-    publish = configuration.publish
-    hostname = configuration.container_hostname
+    expose = constants.EXPOSE
+    publish = constants.PUBLISH
+    hostname = constants.HOSTNAME
     docker_args = ['--privileged', '--detach']
     if name:
         docker_args.append('--name={}'.format(name))
@@ -619,8 +625,6 @@ def _run_container(docker_tag, volume=None, label=None, name=None,
         ['--label={}'.format(l) for l in label] +
         [docker_tag]).strip()
     container_ip = _extract_container_ip(container_id)
-    work.save_last_container_id_and_ip(container_id=container_id,
-                                       container_ip=container_ip)
     if details_path:
         _write_container_details(container_id=container_id,
                                  container_ip=container_ip,
