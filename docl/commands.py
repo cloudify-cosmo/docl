@@ -213,30 +213,7 @@ def _run_container_preparation_scripts(container_id, skip_agent_prepare):
 def pull_image(no_progress=False):
     # try contacting the docker daemon first, to break early if it's not
     # reachable - before the long download
-    quiet_docker.version()
-
-    online_sha1 = requests.get(
-        configuration.manager_image_commit_sha_url).text.strip()
-    local_sha1 = work.last_pulled_image_commit_sha1
-    if online_sha1 == local_sha1:
-        logger.info('Current image is the latest image. It is based on the '
-                    'following commit in the manager blueprints repo: {}'
-                    .format(local_sha1))
-        return
-    logger.info('Download manager image from {} to {}'
-                .format(configuration.manager_image_url,
-                        work.pulled_image_path))
-    if os.path.exists(work.pulled_image_path):
-        os.remove(work.pulled_image_path)
-    files.download(url=configuration.manager_image_url,
-                   output_path=work.pulled_image_path,
-                   no_progress=no_progress)
-    logger.info('Loading image into docker (may take a while)')
-    quiet_docker.load(gzip('-dc', work.pulled_image_path,
-                           _piped=True,
-                           _out_bufsize=constants.BUFFER_SIZE),
-                      _in_bufsize=constants.BUFFER_SIZE)
-    work.last_pulled_image_commit_sha1 = online_sha1
+    logger.info('Do: curl http://cloudify-tests-files.s3.amazonaws.com/docl-images/docl-manager.tar.gz | gzip -dc | docker load')  # NOQA
 
 
 @command
@@ -439,8 +416,8 @@ def _get_docker_version(container_id=None):
 @argh.arg('-l', '--label', action='append')
 def clean(label=None):
     label = label or []
-    docker_tag1 = configuration.clean_image_docker_tag
-    docker_tag2 = configuration.manager_image_docker_tag
+    docker_tag1 = constants.CLEAN_IMAGE_DOCKER_TAG
+    docker_tag2 = constants.MANAGER_IMAGE_DOCKER_TAG
     ps_command = [
         '-aq',
         '--filter', 'ancestor={}'.format(docker_tag1),
