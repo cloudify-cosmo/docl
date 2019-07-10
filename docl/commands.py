@@ -22,11 +22,11 @@ import time
 import threading
 import os
 import base64
+from itertools import chain
 
 import sh
 import argh
 import yaml
-import requests
 from watchdog import events
 from watchdog import observers
 from path import path
@@ -37,7 +37,6 @@ from cloudify_cli import env as cli_env
 from docl import constants
 from docl import resources
 from docl import install_rpm_server
-from docl import files
 from docl.configuration import configuration
 from docl.work import work
 from docl.subprocess import docker
@@ -115,8 +114,8 @@ def prepare(config_output=None, label=None, details_path=None, tag=None):
         tag=tag)
     logger.info('Container {0} started on ip {1}'
                 .format(container_id, container_ip))
-    _ssh_setup(container_id=container_id, container_ip=container_ip)
-    _write_config(container_ip=container_ip, config_path=config_output)
+    # _ssh_setup(container_id=container_id, container_ip=container_ip)
+    # _write_config(container_ip=container_ip, config_path=config_output)
     return container_id, container_ip
 
 
@@ -232,11 +231,12 @@ def remove_image(tag=None):
 
 @command
 @argh.arg('-l', '--label', action='append')
+@argh.arg('-r', '--resource', action='append')
 @argh.arg('-n', '--name')
 def run(mount='', label=None, name=None, details_path=None, tag=None,
-        mount_docker=False):
+        mount_docker=False, resource=None):
     docker_tag = tag or constants.MANAGER_IMAGE_DOCKER_TAG
-    volumes = _build_volumes(mount) if mount else []
+    volumes = _build_volumes(mount, resource or []) if mount else []
     if mount_docker:
         volumes += _mount_docker_volumes()
     container_id, container_ip = _run_container(docker_tag=docker_tag,
@@ -249,7 +249,7 @@ def run(mount='', label=None, name=None, details_path=None, tag=None,
     _update_container(container_id, container_ip)
 
 
-def _build_volumes(basedir):
+def _build_volumes(basedir, additional_resources):
     # resources should be able to override env packages which is why
     # we use a dist based in the destination directory
     volumes = {}
@@ -262,7 +262,11 @@ def _build_volumes(basedir):
             dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
                                                                       package)
             volumes[dst] = '{}:{}:ro'.format(src, dst)
-    for resource in constants.RESOURCES:
+    formatted_resources = []
+    for resource in additional_resources:
+        src, dst = resource.split(':')
+        formatted_resources.append({'src': src, 'dst': dst})
+    for resource in chain(constants.RESOURCES, formatted_resources):
         dst = resource['dst']
         # Might not be declared yet (e.g. cfy_manager)
         if not dst:
@@ -290,7 +294,10 @@ def _mount_docker_volumes():
 
     Returns a list of arguments to be used with --volume in docker run.
     """
-    docker_host = configuration.docker_host or 'unix:///var/run/docker.sock'
+
+    docker_host = 'unix:///var/run/docker.sock'
+    if configuration.initialized and configuration.docker_host:
+        docker_host = configuration.docker_host
     if not docker_host.startswith('unix:'):
         raise argh.CommandError('Mounting the docker socket is only possible '
                                 'when docker_host is a unix socket (and '
@@ -364,7 +371,7 @@ def _update_container(container_id, container_ip):
         json.dump({
             'ip': container_ip,
             'is_debug_on': bool(os.environ.get('DEBUG_MODE')),
-            'host': _get_debug_ip(),
+            'host': '',  # _get_debug_ip(),
             'services': constants.ALL_IP_SERVICES
         }, f)
         f.flush()
@@ -387,8 +394,7 @@ def install_docker(version=None, container_id=None, sudo_user='cfyuser'):
     cp(resources.DIR / 'docker.repo', ':/etc/yum.repos.d/docker.repo',
        container_id=container_id)
     version = version or _get_docker_version()
-    install_docker_command = 'yum install -y -q docker-client-{}'.format(
-        version)
+    install_docker_command = 'yum install -y -q docker-client'
     docker('exec', container_id, *install_docker_command.split(' '))
 
 
@@ -485,11 +491,11 @@ def ssh(container_id=None):
 
 @command
 def shell(container_id=None):
-    container_id = container_id or work.last_container_id
+    container_id = container_id or _last_container_id()
     # use os.execv so that docker gets the tty; there's no need for the
     # python side to wait anyway
     args = ['docker']
-    if configuration.docker_host:
+    if configuration.initialized and configuration.docker_host:
         args += ['-H', configuration.docker_host]
     args += ['exec', '-it', container_id, '/bin/bash']
     os.execv(sh.which('docker'), args)
@@ -498,9 +504,9 @@ def shell(container_id=None):
 @command
 def build_agent(container_id=None):
     logger.info('Rebuilding agent package')
-    container_id = container_id or work.last_container_id
+    container_id = container_id or _last_container_id()
     quiet_docker('exec', container_id, 'tar', 'czf',
-                 configuration.agent_package_path, '-C',
+                 constants.AGENT_PACKAGE_PATH, '-C',
                  path(constants.AGENT_TEMPLATE_DIR).dirname(),
                  path(constants.AGENT_TEMPLATE_DIR).basename())
 
@@ -595,13 +601,11 @@ def _restart_service(container_id, service):
 
 
 def _create_base_container(label, details_path, tag):
-    docker_tag = tag or configuration.clean_image_docker_tag
-    docker.pull('cloudifyplatform/community:latest-centos7-base-image')
-    docker.tag('cloudifyplatform/community:latest-centos7-base-image',
-               configuration.clean_image_docker_tag)
-    container_id, container_ip = _run_container(docker_tag=docker_tag,
-                                                details_path=details_path,
-                                                label=label)
+    docker.build('-t', constants.CLEAN_IMAGE_DOCKER_TAG, resources.DIR)
+    container_id, container_ip = _run_container(
+        docker_tag=constants.CLEAN_IMAGE_DOCKER_TAG,
+        details_path=details_path,
+        label=label)
     _retry(quiet_docker, 'exec', container_id, 'systemctl', 'start', 'dbus')
     return container_id, container_ip
 
