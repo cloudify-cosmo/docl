@@ -22,6 +22,7 @@ import time
 import threading
 import os
 import base64
+from itertools import chain
 
 import sh
 import argh
@@ -228,11 +229,12 @@ def remove_image(tag=None):
 
 @command
 @argh.arg('-l', '--label', action='append')
+@argh.arg('-r', '--resource', action='append')
 @argh.arg('-n', '--name')
 def run(mount='', label=None, name=None, details_path=None, tag=None,
-        mount_docker=False):
+        mount_docker=False, resource=None):
     docker_tag = tag or constants.MANAGER_IMAGE_DOCKER_TAG
-    volumes = _build_volumes(mount) if mount else []
+    volumes = _build_volumes(mount, resource or []) if mount else []
     if mount_docker:
         volumes += _mount_docker_volumes()
     container_id, container_ip = _run_container(docker_tag=docker_tag,
@@ -245,7 +247,7 @@ def run(mount='', label=None, name=None, details_path=None, tag=None,
     _update_container(container_id, container_ip)
 
 
-def _build_volumes(basedir):
+def _build_volumes(basedir, additional_resources):
     # resources should be able to override env packages which is why
     # we use a dist based in the destination directory
     volumes = {}
@@ -258,7 +260,11 @@ def _build_volumes(basedir):
             dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
                                                                       package)
             volumes[dst] = '{}:{}:ro'.format(src, dst)
-    for resource in constants.RESOURCES:
+    formatted_resources = []
+    for resource in additional_resources:
+        src, dst = resource.split(':')
+        formatted_resources.append({'src': src, 'dst': dst})
+    for resource in chain(constants.RESOURCES, formatted_resources):
         dst = resource['dst']
         # Might not be declared yet (e.g. cfy_manager)
         if not dst:
@@ -360,7 +366,7 @@ def _update_container(container_id, container_ip):
         json.dump({
             'ip': container_ip,
             'is_debug_on': bool(os.environ.get('DEBUG_MODE')),
-            'host': _get_debug_ip(),
+            'host': '', # _get_debug_ip(),
             'services': constants.ALL_IP_SERVICES
         }, f)
         f.flush()
@@ -481,11 +487,11 @@ def ssh(container_id=None):
 
 @command
 def shell(container_id=None):
-    container_id = container_id or work.last_container_id
+    container_id = container_id or _last_container_id()
     # use os.execv so that docker gets the tty; there's no need for the
     # python side to wait anyway
     args = ['docker']
-    if configuration.docker_host:
+    if configuration.initialized and configuration.docker_host:
         args += ['-H', configuration.docker_host]
     args += ['exec', '-it', container_id, '/bin/bash']
     os.execv(sh.which('docker'), args)
