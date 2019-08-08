@@ -19,7 +19,7 @@ from setuptools import setup
 
 setup(
     name='docl',
-    version='0.52',
+    version='0.53',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=[
@@ -34,7 +34,7 @@ setup(
         'sh==1.11',
         'path.py==8.1.2',
         'watchdog==0.8.3',
-        'pyyaml==3.12',
+        'pyyaml==3.10',
         'FileServer==0.3'
     ],
     include_package_data=True,
