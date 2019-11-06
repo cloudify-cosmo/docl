@@ -341,23 +341,38 @@ def install_docker(version=None, container_id=None):
         pass
     cp(resources.DIR / 'docker.repo', ':/etc/yum.repos.d/docker.repo',
        container_id=container_id)
-    version = version or _get_docker_version()
-    install_docker_command = 'yum install -y -q docker-engine-{}'.format(
+    version = version or _get_docker_version(container_id)
+    install_docker_command = 'yum install -y -q {}'.format(
         version)
     docker('exec', container_id, *install_docker_command.split(' '))
 
 
-def _get_docker_version():
+def _get_docker_version(container_id=None):
     try:
         version = quiet_docker.version('-f', '{{.Client.Version}}').strip()
     except sh.ErrorReturnCode as e:
         version = e.stdout.strip()
-
-    # Replacing the -ce in the version with .ce, as the versions in
-    # https://yum.dockerproject.org/repo/main/centos/7/Packages/
-    # adhere to this notation
-    if version.endswith('-ce'):
-        version = version.replace('-ce', '.ce')
+    if container_id:
+        # Updating this for use with Docker CE Repos.
+        docker_repos = 'yum-config-manager --add-repo ' \
+                       'https://download.docker.com/linux/' \
+                       'centos/docker-ce.repo'
+        docker('exec', container_id, *docker_repos.split(' '))
+        list_command = 'yum list docker-ce --showduplicates'
+        docker_rpms = sorted(docker('exec',
+                             container_id,
+                             *list_command.split(' ')),
+                             reverse=True)
+        for rpm_line in docker_rpms:
+            # We get: "docker-ce.x86_64\t3:19.06.01\tdocker-ce-stable'
+            # We want 3:19.06.01.
+            rpm_line = [li.encode('utf-8') for li in rpm_line.split()]
+            # We want 18.06.1.ce.
+            rpm_package = rpm_line[0].split('.')[0]
+            rpm_release = rpm_line[1].split(':')[-1]
+            # We want 18.06.1-ce. Don't know why.
+            if version in rpm_release.replace('.ce', '-ce'):
+                return '-'.join([rpm_package, rpm_release])
     return version
 
 
@@ -559,12 +574,12 @@ def _run_container(docker_tag, volume=None, label=None, name=None,
         docker_args.append('--name={}'.format(name))
     container_id = quiet_docker.run(
         *docker_args +
-         ['--hostname={}'.format(hostname)] +
-         ['--expose={}'.format(e) for e in expose] +
-         ['--publish={}'.format(p) for p in publish] +
-         ['--volume={}'.format(v) for v in volume] +
-         ['--label={}'.format(l) for l in label] +
-         [docker_tag]).strip()
+        ['--hostname={}'.format(hostname)] +
+        ['--expose={}'.format(e) for e in expose] +
+        ['--publish={}'.format(p) for p in publish] +
+        ['--volume={}'.format(v) for v in volume] +
+        ['--label={}'.format(l) for l in label] +
+        [docker_tag]).strip()
     container_ip = _extract_container_ip(container_id)
     work.save_last_container_id_and_ip(container_id=container_id,
                                        container_ip=container_ip)

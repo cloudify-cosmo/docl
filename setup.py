@@ -19,7 +19,7 @@ from setuptools import setup
 
 setup(
     name='docl',
-    version='0.53',
+    version='0.54',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
     packages=[
