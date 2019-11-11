@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 import json
 import sched
 import shlex
@@ -342,8 +343,7 @@ def install_docker(version=None, container_id=None):
     cp(resources.DIR / 'docker.repo', ':/etc/yum.repos.d/docker.repo',
        container_id=container_id)
     version = version or _get_docker_version(container_id)
-    install_docker_command = 'yum install -y -q {}'.format(
-        version)
+    install_docker_command = 'yum install -y -q {}'.format(version)
     docker('exec', container_id, *install_docker_command.split(' '))
 
 
@@ -365,15 +365,15 @@ def _get_docker_version(container_id=None):
                              reverse=True)
         for rpm_line in docker_rpms:
             # We get: "docker-ce.x86_64\t3:19.06.01\tdocker-ce-stable'
-            # We want 3:19.06.01.
+            # We want package = docker-ce  and  release = 19.06.01
+            #    (or 18.06.1-ce for versions ending in .ce)
             rpm_line = [li.encode('utf-8') for li in rpm_line.split()]
-            # We want 18.06.1.ce.
             rpm_package = rpm_line[0].split('.')[0]
-            rpm_release = rpm_line[1].split(':')[-1]
-            # We want 18.06.1-ce. Don't know why.
-            if version in rpm_release.replace('.ce', '-ce'):
-                return '-'.join([rpm_package, rpm_release])
-    return version
+            rpm_release = rpm_line[1].split(':')[-1].replace('.ce', '-ce')
+            if version in rpm_release:
+                return '{0}-{1}'.format(rpm_package, rpm_release)
+    # if version not in new repo - use old format
+    return 'docker-engine-{}'.format(re.sub('-ce$', '.ce', version))
 
 
 @command
