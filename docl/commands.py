@@ -554,9 +554,7 @@ def _build_volumes():
 
 def _create_base_container(label, details_path, tag):
     docker_tag = tag or configuration.clean_image_docker_tag
-    docker.pull('cloudifyplatform/community:latest-centos7-base-image')
-    docker.tag('cloudifyplatform/community:latest-centos7-base-image',
-               configuration.clean_image_docker_tag)
+    docker.build('-t', configuration.clean_image_docker_tag, resources.DIR)
     container_id, container_ip = _run_container(docker_tag=docker_tag,
                                                 details_path=details_path,
                                                 label=label)
