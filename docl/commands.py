@@ -340,8 +340,6 @@ def install_docker(version=None, container_id=None):
         return
     except sh.ErrorReturnCode:
         pass
-    cp(resources.DIR / 'docker.repo', ':/etc/yum.repos.d/docker.repo',
-       container_id=container_id)
     version = version or _get_docker_version(container_id)
     install_docker_command = 'yum install -y -q {}'.format(version)
     docker('exec', container_id, *install_docker_command.split(' '))
@@ -369,6 +367,9 @@ def _get_docker_version(container_id=None):
             #    (or 18.06.1-ce for versions ending in .ce)
             rpm_line = [li.encode('utf-8') for li in rpm_line.split()]
             rpm_package = rpm_line[0].split('.')[0]
+            # Filter out the output before we get to the available packages.
+            if 'docker-ce' not in rpm_package:
+                continue
             rpm_release = rpm_line[1].split(':')[-1].replace('.ce', '-ce')
             if version in rpm_release:
                 return '{0}-{1}'.format(rpm_package, rpm_release)
