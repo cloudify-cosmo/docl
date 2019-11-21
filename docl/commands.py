@@ -342,7 +342,7 @@ def install_docker(version=None, container_id=None):
         pass
     version = version or _get_docker_version(container_id)
     install_docker_command = 'yum install -y -q {}'.format(version)
-    docker('exec', container_id, *install_docker_command.split(' '))
+    quiet_docker('exec', container_id, *install_docker_command.split(' '))
 
 
 def _get_docker_version(container_id=None):
