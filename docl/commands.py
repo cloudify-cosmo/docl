@@ -372,6 +372,7 @@ def _get_docker_version(container_id=None):
             if 'docker-ce' not in rpm_package:
                 continue
             rpm_release = rpm_line[1].split(':')[-1].replace('.ce', '-ce')
+            print ('TtTTTTTTTTT{0} {1}'.format(version, rpm_release))
             if version in rpm_release:
                 return '{0}-{1}'.format(rpm_package, rpm_release)
     # if version not in new repo - use old format
