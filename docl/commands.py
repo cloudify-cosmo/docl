@@ -342,7 +342,7 @@ def install_docker(version=None, container_id=None):
         pass
     version = version or _get_docker_version(container_id)
     install_docker_command = 'yum install -y -q {}'.format(version)
-    quiet_docker('exec', container_id, *install_docker_command.split(' '))
+    docker('exec', container_id, *install_docker_command.split(' '))
 
 
 def _get_docker_version(container_id=None):
@@ -367,6 +367,7 @@ def _get_docker_version(container_id=None):
             #    (or 18.06.1-ce for versions ending in .ce)
             rpm_line = [li.encode('utf-8') for li in rpm_line.split()]
             rpm_package = rpm_line[0].split('.')[0]
+            print ('{0} {1}'.format(rpm_line, rpm_package))
             # Filter out the output before we get to the available packages.
             if 'docker-ce' not in rpm_package:
                 continue
