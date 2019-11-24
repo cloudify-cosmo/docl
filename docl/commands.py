@@ -351,30 +351,36 @@ def _get_docker_version(container_id=None):
     except sh.ErrorReturnCode as e:
         version = e.stdout.strip()
     if container_id:
-        # Updating this for use with Docker CE Repos.
-        docker_repos = 'yum-config-manager --add-repo ' \
-                       'https://download.docker.com/linux/' \
-                       'centos/docker-ce.repo'
+        # if old docker, use old Docker Engine repos
+        is_old_version = (int(version.split('.')[0]) < 17)
+        docker_repos = 'yum-config-manager --add-repo {}'.format(
+            'https://yum.dockerproject.org/repo/main/centos/7'
+            if is_old_version else
+            'https://download.docker.com/linux/centos/docker-ce.repo'
+        )
         docker('exec', container_id, *docker_repos.split(' '))
-        list_command = 'yum list docker-ce --showduplicates'
+        list_command = 'yum list docker-{} --showduplicates'.format(
+            'engine' if is_old_version else 'ce')
         docker_rpms = sorted(docker('exec',
                              container_id,
                              *list_command.split(' ')),
                              reverse=True)
         for rpm_line in docker_rpms:
-            # We get: "docker-ce.x86_64\t3:19.06.01\tdocker-ce-stable'
+            # We get: "docker-ce.x86_64   3:19.06.01   docker-ce-stable'
             # We want package = docker-ce  and  release = 19.06.01
             #    (or 18.06.1-ce for versions ending in .ce)
             rpm_line = [li.encode('utf-8') for li in rpm_line.split()]
             rpm_package = rpm_line[0].split('.')[0]
             # Filter out the output before we get to the available packages.
-            if 'docker-ce' not in rpm_package:
+            if 'docker-' not in rpm_package:
                 continue
-            rpm_release = rpm_line[1].split(':')[-1].replace('.ce', '-ce')
+            rpm_release = re.sub('-ce$', '.ce', rpm_line[1].split(':')[-1])
             if version in rpm_release:
-                return '{0}-{1}'.format(rpm_package, rpm_release)
-    # if version not in new repo - use old format
-    return 'docker-engine-{}'.format(re.sub('-ce$', '.ce', version))
+                return '{gpg_check_flag}{package}-{release}'.format(
+                    package=rpm_package,
+                    release=rpm_release,
+                    gpg_check_flag=('--nogpgcheck ' if is_old_version else '')
+                )
 
 
 @command
