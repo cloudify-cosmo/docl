@@ -617,7 +617,7 @@ def _run_container(docker_tag, volume=None, label=None, name=None,
     expose = constants.EXPOSE
     publish = constants.PUBLISH
     hostname = constants.HOSTNAME
-    docker_args = ['--privileged', '--detach']
+    docker_args = ['--detach']
     if name:
         docker_args.append('--name={}'.format(name))
     container_id = quiet_docker.run(
