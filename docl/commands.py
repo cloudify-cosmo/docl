@@ -350,7 +350,7 @@ def _get_docker_version(container_id=None):
         # if old docker, use old Docker Engine repos
         is_old_version = (int(version.split('.')[0]) < 17)
         docker_repos = 'yum-config-manager --add-repo {}'.format(
-            'https://yum.dockerproject.org/repo/main/centos/7'
+            'https://download.docker.com/linux/centos/7/x86_64/stable/Packages/'
             if is_old_version else
             'https://download.docker.com/linux/centos/docker-ce.repo'
         )
