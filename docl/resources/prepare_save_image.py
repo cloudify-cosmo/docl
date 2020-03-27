@@ -18,7 +18,6 @@ import json
 import os
 import sys
 import subprocess
-from glob import glob
 
 
 def _run(command):
@@ -58,14 +57,6 @@ def _install_pydevd():
         _run('{0} install pydevd'.format(str(pip)))
 
 
-def _print_cfy_manager_location():
-    # This should get us the location of the cfy_manager code
-    location = glob('/root/.pex/install/cloudify_manager_install*/'
-                    'cloudify_manager_install*.whl/cfy_manager')[0]
-    # The output will be parsed by docl
-    print location
-
-
 def main():
     params = json.loads(base64.b64decode(sys.argv[1]))
     data_json_path = params['data_json_path']
@@ -77,7 +68,6 @@ def main():
     _write_to_files(data_json_path)
     _remove_old_json(data_json_path)
     _install_pydevd()
-    _print_cfy_manager_location()
 
 
 if __name__ == '__main__':

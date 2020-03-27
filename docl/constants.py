@@ -171,7 +171,6 @@ RESOURCES = (
     },
     {
         'src': 'cloudify-manager-install/cfy_manager',
-        # Will be filled later by save-image
-        'dst': ''
+        'dst': '/opt/cloudify/cfy_manager/lib/python3.6/site-packages/cfy_manager/'  # noqa
     }
 )
