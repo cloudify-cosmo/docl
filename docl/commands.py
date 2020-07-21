@@ -125,21 +125,23 @@ def bootstrap(inputs=None, label=None, details_path=None, tag=None,
     inputs = inputs or []
     with tempfile.NamedTemporaryFile() as f:
         if not container_id:
-            container_id, _ = prepare(config_output=f.name,
-                                      label=label,
-                                      details_path=details_path,
-                                      tag=tag)
+            container_id, container_ip = prepare(config_output=f.name,
+                                                 label=label,
+                                                 details_path=details_path,
+                                                 tag=tag)
             inputs.insert(0, f.name)
         if serve_install_rpm:
             with install_rpm_server.with_server(
                     invalidate_cache=serve_install_rpm_invalidate_cache,
                     no_progress=serve_install_rpm_no_progress) as url:
-                _install_manager(container_id, config_path=f.name, rpm_url=url)
+                _install_manager(container_id, container_ip,
+                                 config_path=f.name, rpm_url=url)
         else:
-            _install_manager(container_id, config_path=f.name, rpm_url=rpm_url)
+            _install_manager(container_id, container_ip,
+                             config_path=f.name, rpm_url=rpm_url)
 
 
-def _install_manager(container_id, config_path, rpm_url=None):
+def _install_manager(container_id, container_ip, config_path, rpm_url=None):
     rpm_url = rpm_url or install_rpm_server.get_rpm_url()
     logger.info('Downloading install RPM from: {0}'.format(rpm_url))
     exc(
@@ -156,7 +158,9 @@ def _install_manager(container_id, config_path, rpm_url=None):
     logger.info('Copying configuration...')
     cp(config_path, ':/etc/cloudify/config.yaml')
     logger.info('Installing Cloudify Manager...')
-    exc('cfy_manager install', container_id)
+    install_cmd = 'cfy_manager install --private-ip {0} --public-ip ' \
+                  '{0}'.format(container_ip)
+    exc(install_cmd, container_id)
 
 
 @command
