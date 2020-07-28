@@ -540,9 +540,12 @@ def _build_volumes():
             src = '{}/{}/{}'.format(configuration.source_root,
                                     configuration.package_dir[package],
                                     package)
-            dst = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
+            dst1 = '/opt/{}/env/lib/python2.7/site-packages/{}'.format(env,
                                                                       package)
-            volumes[dst] = '{}:{}:ro'.format(src, dst)
+            dst2 = '/opt/{}/env/lib/python3.6/site-packages/{}'.format(env,
+                                                                      package)
+            volumes[dst1] = '{}:{}:ro'.format(src, dst1)
+            volumes[dst2] = '{}:{}:ro'.format(src, dst2)
     for resource in configuration.resources:
         dst = resource['dst']
         # Might not be declared yet (e.g. cfy_manager)
