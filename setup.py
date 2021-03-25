@@ -34,7 +34,7 @@ setup(
         'sh==1.11',
         'path.py==8.1.2',
         'watchdog==0.8.3',
-        'pyyaml==4.2b4',
+        'pyyaml==5.4',
         'FileServer==0.3'
     ],
     include_package_data=True,
